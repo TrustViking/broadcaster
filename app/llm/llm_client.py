@@ -321,7 +321,7 @@ def _build_openai_responses_request_kwargs(
         request_kwargs["text"] = {
             "format": {
                 "type": "json_schema",
-                "name": structured_schema.get("name", "broadcaster_merge_v1"),
+                "name": structured_schema.get("name", "merge_v1"),
                 "strict": True,
                 "schema": structured_schema["schema"],
             }

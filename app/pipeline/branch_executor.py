@@ -191,7 +191,7 @@ class BranchExecutor:
         if stage_count > 1 and stage_index > 1:
             self._notifier.emit(
                 f"⏭ Переход к этапу {branch.name}",
-                to_telegram=not dry_run,
+                to_telegram=False,
             )
         self._notifier.emit(
             f"▶️ Этап {stage_index}/{stage_count}: {branch.name}, дата {format_date_key_for_display(date_key)}",
@@ -515,7 +515,7 @@ class BranchExecutor:
         )
         self._notifier.emit(
             f"✅ Telegram-пакет: отправлено {telegram_result.sent_count}",
-            to_telegram=not dry_run,
+            to_telegram=False,
         )
         if merge_status_text:
             self._notifier.emit(merge_status_text, to_telegram=not dry_run)

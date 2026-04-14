@@ -3,21 +3,17 @@ from __future__ import annotations
 import logging
 import os
 import sys
-import warnings
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Tuple
 
 from app.core.constants import (
     LOGGER_NAME_DEFAULT,
     LOGGER_NAME_ENV_VAR,
-    LOGGER_NAME_ENV_VAR_LEGACY_1,
 )
 from app.paths._root import PROJECT_ROOT
 
-LEGACY_LOGGER_NAME_ENV_VAR: str = "STREAMERTG_LOGGER_NAME"
-LOG_FILE_ENV_VAR: str = "BROADCASTER_LOG_FILE"
-LOG_FILE_ENV_VAR_LEGACY: str = "RESTREAMER_LOG_FILE"  # deprecated, no longer used as fallback
+LOG_FILE_ENV_VAR: str = "LOG_FILE"
 CONSOLE_LOGGER_SUFFIX: str = "console"
 
 
@@ -25,22 +21,6 @@ def resolve_base_logger_name() -> str:
     preferred: str = os.getenv(LOGGER_NAME_ENV_VAR, "").strip()
     if preferred:
         return preferred
-    legacy_1: str = os.getenv(LOGGER_NAME_ENV_VAR_LEGACY_1, "").strip()
-    if legacy_1:
-        warnings.warn(
-            f"Env var {LOGGER_NAME_ENV_VAR_LEGACY_1} is deprecated, use {LOGGER_NAME_ENV_VAR} instead",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return legacy_1
-    legacy_2: str = os.getenv(LEGACY_LOGGER_NAME_ENV_VAR, "").strip()
-    if legacy_2:
-        warnings.warn(
-            f"Env var {LEGACY_LOGGER_NAME_ENV_VAR} is deprecated, use {LOGGER_NAME_ENV_VAR} instead",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return legacy_2
     return LOGGER_NAME_DEFAULT
 
 
@@ -72,26 +52,11 @@ def resolve_logger_name() -> str:
 
 
 def resolve_logger_name_meta() -> Tuple[str, str, bool]:
-    preferred_raw: Optional[str] = os.getenv(LOGGER_NAME_ENV_VAR)
+    preferred_raw: str | None = os.getenv(LOGGER_NAME_ENV_VAR)
     preferred_cleaned: str = (preferred_raw or "").strip()
     if preferred_cleaned:
         return (preferred_cleaned, f"env:{LOGGER_NAME_ENV_VAR}", True)
-
-    legacy1_raw: Optional[str] = os.getenv(LOGGER_NAME_ENV_VAR_LEGACY_1)
-    legacy1_cleaned: str = (legacy1_raw or "").strip()
-    if legacy1_cleaned:
-        return (legacy1_cleaned, f"env:{LOGGER_NAME_ENV_VAR_LEGACY_1}", True)
-
-    legacy2_raw: Optional[str] = os.getenv(LEGACY_LOGGER_NAME_ENV_VAR)
-    legacy2_cleaned: str = (legacy2_raw or "").strip()
-    if legacy2_cleaned:
-        return (legacy2_cleaned, f"env:{LEGACY_LOGGER_NAME_ENV_VAR}", True)
-
-    env_present: bool = (
-        preferred_raw is not None
-        or legacy1_raw is not None
-        or legacy2_raw is not None
-    )
+    env_present: bool = preferred_raw is not None
     return (LOGGER_NAME_DEFAULT, "default", env_present)
 
 
@@ -293,13 +258,6 @@ def setup_logging(debug: bool) -> None:
         str(detailed_log_file_path),
         str(screen_log_file_path),
     )
-    _, source, _ = resolve_logger_name_meta()
-    if source.startswith("env:") and source != f"env:{LOGGER_NAME_ENV_VAR}":
-        base_logger.warning(
-            "Logger name resolved from deprecated env var %s - migrate to %s",
-            source.removeprefix("env:"),
-            LOGGER_NAME_ENV_VAR,
-        )
 
     logging.getLogger("requests_oauthlib").setLevel(logging.WARNING)
     logging.getLogger("oauthlib").setLevel(logging.WARNING)
@@ -408,13 +366,6 @@ def setup_bot_logging(*, debug: bool = False) -> None:
         str(detailed_log_file_path),
         str(screen_log_file_path),
     )
-    _, source, _ = resolve_logger_name_meta()
-    if source.startswith("env:") and source != f"env:{LOGGER_NAME_ENV_VAR}":
-        root_logger.warning(
-            "Logger name resolved from deprecated env var %s - migrate to %s",
-            source.removeprefix("env:"),
-            LOGGER_NAME_ENV_VAR,
-        )
 
     logging.getLogger("requests_oauthlib").setLevel(logging.WARNING)
     logging.getLogger("oauthlib").setLevel(logging.WARNING)

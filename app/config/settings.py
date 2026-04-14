@@ -16,9 +16,6 @@ class AppTemplates:
     telegram_language_block: str
     telegram_language_merged_block: str
     telegram_key_form_reminder: str
-    telegram_sparkle_separator: str
-    telegram_post_header: str
-    telegram_language_digest_header: str
     llm_merge_title_description_prompt: str
     llm_startup_ping_prompt: str
     llm_merge_structural_rules: str

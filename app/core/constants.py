@@ -5,8 +5,7 @@ import re
 from app.resources.resource_loader import load_lines_resource
 
 LOGGER_NAME_ENV_VAR: str = "LOGGER_NAME"
-LOGGER_NAME_ENV_VAR_LEGACY_1: str = "RESTREAMER_LOGGER_NAME"
-LOGGER_NAME_DEFAULT: str = "broadcaster"
+LOGGER_NAME_DEFAULT: str = "pipeline"
 MERGED_DESCRIPTION_HARD_CEILING: int = 4500
 
 # Bullet markers (structural, shared across core and llm)

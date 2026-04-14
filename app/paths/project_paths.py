@@ -27,7 +27,7 @@ class ProjectPaths:
 @lru_cache(maxsize=1)
 def get_project_paths() -> ProjectPaths:
     project_root: Path = PROJECT_ROOT
-    entrypoint_path: Path = project_root / "broadcaster.py"
+    entrypoint_path: Path = project_root / "promo.py"
     secrets_dir: Path = project_root / "secrets"
     frozen: bool = bool(getattr(sys, "frozen", False))
 

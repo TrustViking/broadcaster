@@ -1,16 +1,11 @@
 from __future__ import annotations
 
 
-class BroadcasterError(RuntimeError):
+class ApplicationError(RuntimeError):
     """Base application error."""
 
 
-# Legacy aliases
-RestreamerError = BroadcasterError
-StreamertgError = BroadcasterError
-
-
-class ConfigurationError(BroadcasterError):
+class ConfigurationError(ApplicationError):
     """Configuration/validation error."""
 
 

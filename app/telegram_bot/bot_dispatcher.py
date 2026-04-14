@@ -12,7 +12,7 @@ from app.bootstrap.logging_config import (
     get_logger as _get_logger_impl,
 )
 from app.telegram_bot.bot_auth import RoleMiddleware
-from app.telegram_bot.bot_handlers_info import router
+from app.telegram_bot.bot_handlers_info import router, _MODE_KEYBOARD
 from app.telegram_bot.group_registry import KnownGroup, load_known_groups, sync_access_lists
 
 LOGGER: logging.Logger = _get_logger_impl("bot")
@@ -160,7 +160,8 @@ async def run_bot() -> None:
         try:
             await bot.send_message(
                 chat_id=int(group.chat_id),
-                text=f"✅ Бот готов к работе\n🤖 @{username}",
+                text=f"✅ Бот готов к работе\n🤖 @{username}\n\nВыберите режим обработки:",
+                reply_markup=_MODE_KEYBOARD,
             )
         except Exception:
             LOGGER.debug(

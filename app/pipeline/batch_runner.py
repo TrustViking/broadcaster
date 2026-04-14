@@ -31,6 +31,7 @@ from app.observability.startup_health import log_section, run_startup_health_che
 from app.observability.startup_summary import LlmSummarySnapshot
 from app.paths.name_builder import NamePathBuilder
 from app.planning import log_link_normalization_report
+from app.planning.link_normalization import build_sheet_cell_a1
 from app.planning.batch_planner import (
     build_prepared_videos,
     derive_planned_videos,
@@ -309,6 +310,18 @@ class BatchRunner:
             prepared_videos=prepared_videos,
             dry_run=dry_run,
         )
+        self._writeback_preview_urls(
+            services=services,
+            prepared_videos=prepared_videos,
+            sheet_state=sheet_state,
+            dry_run=dry_run,
+        )
+        self._writeback_detected_languages(
+            services=services,
+            prepared_videos=prepared_videos,
+            sheet_state=sheet_state,
+            dry_run=dry_run,
+        )
         shared_preparation_ms: int = int(round((time.perf_counter() - shared_preparation_started_at) * 1000.0))
         record_stage_duration(stage_name="shared_preparation", elapsed_ms=shared_preparation_ms)
         log_stage_timing(
@@ -339,6 +352,110 @@ class BatchRunner:
             prepared_videos=prepared_videos,
             llm_merge_available=llm_merge_available,
         )
+
+    def _writeback_preview_urls(
+        self,
+        *,
+        services: BatchServices,
+        prepared_videos: List[PreparedVideo],
+        sheet_state: BatchSheetState,
+        dry_run: bool,
+    ) -> None:
+        """Write saved_preview_url back to column F of the Google Sheet."""
+        preview_col_index_zero_based: int = 5  # Column F
+        for prepared in prepared_videos:
+            url: str = str(prepared.saved_preview_url or "").strip()
+            if not url:
+                self._logger.debug(
+                    "Row %d: preview_url_writeback skipped, no saved_preview_url.",
+                    prepared.row_number,
+                )
+                continue
+            cell_a1: str = build_sheet_cell_a1(
+                sheet_name=sheet_state.sheet_name_for_writeback,
+                row_index=prepared.row_number,
+                col_index_zero_based=preview_col_index_zero_based,
+            )
+            if dry_run:
+                self._logger.info(
+                    "DRY RUN preview_url_writeback row=%d cell=%s url=%s",
+                    prepared.row_number,
+                    cell_a1,
+                    url,
+                )
+                continue
+            try:
+                services.sheets_client.update_cell_string(
+                    spreadsheet_id=self._config.google.sheets_id,
+                    cell_a1=cell_a1,
+                    value=url,
+                )
+                self._logger.info(
+                    "preview_url_writeback row=%d cell=%s url=%s status=ok",
+                    prepared.row_number,
+                    cell_a1,
+                    url,
+                )
+            except Exception as error:
+                self._logger.warning(
+                    "preview_url_writeback row=%d cell=%s url=%s status=failed reason=%s",
+                    prepared.row_number,
+                    cell_a1,
+                    url,
+                    error,
+                )
+
+    def _writeback_detected_languages(
+        self,
+        *,
+        services: BatchServices,
+        prepared_videos: List[PreparedVideo],
+        sheet_state: BatchSheetState,
+        dry_run: bool,
+    ) -> None:
+        """Write detected language code back to column A of the Google Sheet."""
+        lang_col_index_zero_based: int = 0  # Column A
+        for prepared in prepared_videos:
+            language_code: str = str(prepared.language or "").strip()
+            if not language_code:
+                self._logger.debug(
+                    "Row %d: language_writeback skipped, no detected language.",
+                    prepared.row_number,
+                )
+                continue
+            cell_a1: str = build_sheet_cell_a1(
+                sheet_name=sheet_state.sheet_name_for_writeback,
+                row_index=prepared.row_number,
+                col_index_zero_based=lang_col_index_zero_based,
+            )
+            if dry_run:
+                self._logger.info(
+                    "DRY RUN language_writeback row=%d cell=%s language=%s",
+                    prepared.row_number,
+                    cell_a1,
+                    language_code,
+                )
+                continue
+            try:
+                services.sheets_client.update_cell_string(
+                    spreadsheet_id=self._config.google.sheets_id,
+                    cell_a1=cell_a1,
+                    value=language_code,
+                )
+                self._logger.info(
+                    "language_writeback row=%d cell=%s language=%s status=ok",
+                    prepared.row_number,
+                    cell_a1,
+                    language_code,
+                )
+            except Exception as error:
+                self._logger.warning(
+                    "language_writeback row=%d cell=%s language=%s status=failed reason=%s",
+                    prepared.row_number,
+                    cell_a1,
+                    language_code,
+                    error,
+                )
 
     def _build_processed_by_branch(
         self,

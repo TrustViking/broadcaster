@@ -1,5 +1,5 @@
 from __future__ import annotations
 
-from app.application.application import BroadcasterApplication
+from app.application.application import PipelineApplication
 
-__all__: list[str] = ["BroadcasterApplication"]
+__all__: list[str] = ["PipelineApplication"]

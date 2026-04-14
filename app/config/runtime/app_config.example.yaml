@@ -1,4 +1,4 @@
-# broadcaster - app config template
+# app config template
 # Copy to config/app_config.yaml (portable exe) or app/config/runtime/app_config.yaml (dev).
 # Secrets go in secrets/.env — see .env.example.
 # Env vars override YAML values where noted.
@@ -18,9 +18,9 @@ app:
   google:
     enabled: true
     auth_mode: "oauth"            # "oauth" or "service_account"; env override: GOOGLE_AUTH_MODE
-    drive_preview_path_template: "{broadcaster}/{preview}/{language}/{date}"
+    drive_preview_path_template: "preview/{date}/{language}"
     doc_share_mode: anyone_writer
-    sheets_range: "A:D"
+    sheets_range: "A:F"
     form_url: "https://forms.gle/REPLACE_ME"
     contacts: "@contact1 @contact2"
 

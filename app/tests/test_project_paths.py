@@ -48,7 +48,7 @@ class ProjectPathsTests(unittest.TestCase):
             Path("secrets") / "credentials.json",
         )
 
-        self.assertTrue(str(paths.entrypoint_path).endswith("broadcaster.py"))
+        self.assertTrue(str(paths.entrypoint_path).endswith("promo.py"))
         self.assertTrue(
             str(paths.runtime_config_path).endswith(os.path.join("app", "config", "runtime", "app_config.yaml"))
         )
@@ -84,7 +84,7 @@ class FrozenProjectRootTests(unittest.TestCase):
         self.assertEqual(_resolve_project_root(), get_project_paths().project_root)
 
     def test_frozen_mode_uses_executable_parent(self) -> None:
-        fake_exe: Path = (Path.cwd() / "portable" / "broadcaster.exe").resolve()
+        fake_exe: Path = (Path.cwd() / "portable" / "promo.exe").resolve()
         with patch("app.paths._root.sys") as mock_sys:
             mock_sys.frozen = True
             mock_sys.executable = str(fake_exe)

@@ -60,12 +60,6 @@ telegram:
   key_form_reminder: |
     📌📌📌 Форма для ключей 🔑 ( Key registration form) 📍
     {form_url}
-  sparkle_separator: |
-    ✨✨✨✨✨✨✨
-  post_header: |
-    {symbol_broadcast} Эфир {date} {time_kiev} по Киеву
-  language_digest_header: |
-    {language_flags}{language_name} на {date} в {time_kiev} по Киеву
 
 llm:
   startup_ping_prompt: |

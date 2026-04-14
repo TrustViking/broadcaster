@@ -52,24 +52,53 @@ def load_app_settings_from_path(path: Path) -> Dict[str, Any]:
     return app_settings
 
 
+def _parse_env_bool(raw_value: str, *, env_name: str) -> bool:
+    """Parse common boolean-like env values. Raises RuntimeError on invalid input."""
+    normalized_value: str = raw_value.strip().lower()
+    if normalized_value in {"1", "true", "yes", "on"}:
+        return True
+    if normalized_value in {"0", "false", "no", "off", ""}:
+        return False
+    raise RuntimeError(
+        f"Invalid {env_name} value: {raw_value!r}. "
+        "Allowed: true/false, 1/0, yes/no, on/off."
+    )
+
+
 def load_google_auth_mode(
     app_settings: Optional[Dict[str, Any]] = None,
 ) -> str:
-    """Resolve Google auth mode: env override > YAML > default 'oauth'."""
-    env_value: str = os.getenv("GOOGLE_AUTH_MODE", "").strip().lower()
-    if env_value:
-        if env_value in {"oauth", "service_account"}:
-            return env_value
+    """Resolve Google auth mode: GOOGLE_AUTH_MODE env > GOOGLE_AUTH_MODE_SERVICE_ACCOUNT env > YAML > default 'oauth'."""
+    env_mode: str = os.getenv("GOOGLE_AUTH_MODE", "").strip().lower()
+    if env_mode:
+        if env_mode in {"oauth", "service_account"}:
+            return env_mode
         raise RuntimeError(
             "Invalid GOOGLE_AUTH_MODE. Allowed values: 'oauth', 'service_account'. "
-            f"Current value: {env_value!r}"
+            f"Current value: {env_mode!r}"
         )
+
+    env_service_account_toggle: str = os.getenv(
+        "GOOGLE_AUTH_MODE_SERVICE_ACCOUNT",
+        "",
+    ).strip()
+    if env_service_account_toggle:
+        if _parse_env_bool(
+            env_service_account_toggle,
+            env_name="GOOGLE_AUTH_MODE_SERVICE_ACCOUNT",
+        ):
+            return "service_account"
+        return "oauth"
+
     if isinstance(app_settings, dict):
         google_payload: Any = app_settings.get("google")
         if isinstance(google_payload, dict):
-            yaml_value: str = str(google_payload.get("auth_mode") or "").strip().lower()
+            yaml_value: str = str(
+                google_payload.get("auth_mode") or ""
+            ).strip().lower()
             if yaml_value in {"oauth", "service_account"}:
                 return yaml_value
+
     return "oauth"
 
 

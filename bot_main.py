@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 
 from dotenv import load_dotenv
 
-from app.bootstrap.ensure_dirs import ensure_config_files, ensure_portable_dirs
 from app.bootstrap.logging_config import setup_bot_logging
 from app.paths.project_paths import get_project_paths
 from app.telegram_bot.bot_dispatcher import run_bot
@@ -16,10 +15,6 @@ if TYPE_CHECKING:
 
 def main() -> int:
     project_paths: ProjectPaths = get_project_paths()
-    import logging as _logging
-    _boot_logger: _logging.Logger = _logging.getLogger("broadcaster.boot")
-    ensure_portable_dirs(project_paths=project_paths, logger=_boot_logger)
-    ensure_config_files(project_paths=project_paths, logger=_boot_logger)
     load_dotenv(dotenv_path=project_paths.secrets_env_path, override=False)
     setup_bot_logging()
     asyncio.run(run_bot())

@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
+from app.config.app_config_loader import load_google_auth_mode
 from app.paths import ProjectPaths, get_project_paths
 
 
@@ -250,6 +251,24 @@ def check_google_oauth_credentials(paths: ProjectPaths) -> CheckResult:
         message=(
             f"Missing {credentials_path}. Download OAuth credentials from Google Cloud "
             "Console and place the file there."
+        ),
+    )
+
+
+def check_google_service_account_credentials(paths: ProjectPaths) -> CheckResult:
+    sa_path: Path = paths.service_account_path
+    if sa_path.exists() and sa_path.is_file():
+        return CheckResult(
+            check_name="Google service account credentials",
+            status=STATUS_PASS,
+            message=f"Found {sa_path}.",
+        )
+    return CheckResult(
+        check_name="Google service account credentials",
+        status=STATUS_ERROR,
+        message=(
+            f"Missing {sa_path}. Place the service account JSON file there "
+            "or set GOOGLE_SERVICE_ACCOUNT_PATH in .env."
         ),
     )
 
@@ -511,7 +530,11 @@ def run_preflight(*, include_network_checks: bool) -> int:
     results.extend(env_results)
 
     results.extend(validate_required_env_vars(env_values))
-    results.append(check_google_oauth_credentials(paths))
+    resolved_auth_mode: str = load_google_auth_mode()
+    if resolved_auth_mode == "service_account":
+        results.append(check_google_service_account_credentials(paths))
+    else:
+        results.append(check_google_oauth_credentials(paths))
     results.append(ensure_runtime_config(paths))
     results.append(validate_core_imports())
 
@@ -539,7 +562,7 @@ def run_preflight(*, include_network_checks: bool) -> int:
 
 def parse_args() -> argparse.Namespace:
     parser: argparse.ArgumentParser = argparse.ArgumentParser(
-        description="broadcaster deploy preflight checker"
+        description="deploy preflight checker"
     )
     parser.add_argument(
         "--net",

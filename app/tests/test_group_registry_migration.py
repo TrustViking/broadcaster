@@ -19,13 +19,13 @@ def test_migration_removes_old_and_keeps_new() -> None:
                     "-5268509425": {
                         "chat_id": "-5268509425",
                         "chat_type": "group",
-                        "chat_title": "Streamertg",
+                        "chat_title": "Test Group",
                         "chat_username": "",
                     },
                     "-1003867270959": {
                         "chat_id": "-1003867270959",
                         "chat_type": "supergroup",
-                        "chat_title": "Streamertg",
+                        "chat_title": "Test Group",
                         "chat_username": "",
                     },
                 },

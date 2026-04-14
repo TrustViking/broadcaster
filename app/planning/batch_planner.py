@@ -249,6 +249,7 @@ def materialize_prepared_previews(
 
         preview_target_folder_id: Optional[str] = preview_root_folder_id
         drive_folder_key: Tuple[str, str] = (prepared.date_key, prepared.language)
+        uploaded_preview_url: Optional[str] = None
         if not dry_run and preview_root_folder_id:
             if drive_folder_key not in drive_folder_cache:
                 try:
@@ -281,18 +282,21 @@ def materialize_prepared_previews(
                         expected_size=local_image_path.stat().st_size,
                     )
                     if duplicate_drive_file is not None:
+                        duplicate_file_id: str = duplicate_drive_file[0]
                         logger.info(
                             'preview_save_skipped_duplicate_drive row=%d filename="%s" size=%d folder_id=%s file_id=%s',
                             prepared.row_number,
                             local_image_path.name,
                             duplicate_drive_file[1],
                             preview_target_folder_id,
-                            duplicate_drive_file[0],
+                            duplicate_file_id,
                         )
+                        duplicate_preview_url: str = f"https://drive.google.com/uc?export=download&id={duplicate_file_id}"
                         materialized_videos.append(
                             dataclasses.replace(
                                 prepared,
                                 local_thumbnail_path=local_image_path,
+                                saved_preview_url=duplicate_preview_url,
                             )
                         )
                         continue
@@ -303,15 +307,17 @@ def materialize_prepared_previews(
                         local_image_path.stat().st_size,
                         preview_target_folder_id,
                     )
-                    drive_client.upload_image_and_make_public(
+                    _upload_file_id, _upload_public_url = drive_client.upload_image_and_make_public(
                         image_path=local_image_path,
                         folder_id=preview_target_folder_id,
                         mime_type=prepared.thumbnail.mime_type,
                     )
+                    uploaded_preview_url = _upload_public_url
                     logger.info(
-                        "Row %d: shared preview uploaded to Google Drive (%s)",
+                        "Row %d: shared preview uploaded to Google Drive (%s) url=%s",
                         prepared.row_number,
                         local_image_path.name,
+                        uploaded_preview_url,
                     )
                 except Exception as error:
                     logger.warning(
@@ -323,6 +329,7 @@ def materialize_prepared_previews(
             dataclasses.replace(
                 prepared,
                 local_thumbnail_path=local_image_path,
+                saved_preview_url=uploaded_preview_url,
             )
         )
     return materialized_videos
@@ -391,6 +398,7 @@ def _build_base_planned_video(
         metadata=prepared.metadata,
         thumbnail=prepared.thumbnail,
         local_thumbnail_path=prepared.local_thumbnail_path,
+        saved_preview_url=prepared.saved_preview_url,
     )
     base_block_lang: str = planned_video_block_language(base_video)
     row_characteristics: RowVideoCharacteristics = RowVideoCharacteristics(

@@ -8,7 +8,7 @@ import re
 from typing import Any
 
 from aiogram import Dispatcher, F, Router, types
-from aiogram.exceptions import TelegramBadRequest
+from aiogram.exceptions import TelegramBadRequest, TelegramRetryAfter
 from aiogram.filters import Command
 from aiogram.types import (
     CallbackQuery,
@@ -16,7 +16,7 @@ from aiogram.types import (
     InlineKeyboardMarkup,
 )
 
-from app.application.application import BroadcasterApplication
+from app.application.application import PipelineApplication
 from app.bootstrap.logging_config import (
     get_console_logger as _get_console_logger,
     get_logger as _get_logger_impl,
@@ -87,6 +87,23 @@ async def _safe_callback_answer(
         else:
             await callback.answer()
         return True
+    except TelegramRetryAfter as exc:
+        retry_after: float = float(getattr(exc, "retry_after", 5) or 5)
+        LOGGER.warning(
+            "callback_answer_retry_after retry_after=%.1f callback_id=%s",
+            retry_after,
+            callback.id,
+            extra={"warning_category": "informational"},
+        )
+        await asyncio.sleep(retry_after + 1.0)
+        try:
+            if text:
+                await callback.answer(text, show_alert=show_alert)
+            else:
+                await callback.answer()
+            return True
+        except Exception:
+            return False
     except TelegramBadRequest as exc:
         if _STALE_CALLBACK_PATTERN.search(str(exc)):
             LOGGER.debug("stale_callback_ignored callback_id=%s error=%s", callback.id, exc)
@@ -99,21 +116,46 @@ async def _safe_send_message(
     text: str,
     *,
     reply_markup: InlineKeyboardMarkup | None = None,
+    max_retries: int = 3,
 ) -> bool:
-    """Send a new message in the same chat. Returns True on success."""
+    """Send a new message in the same chat with TelegramRetryAfter handling. Best effort."""
     message_obj: Any = callback.message
     answer_method: Any = getattr(message_obj, "answer", None)
     if not callable(answer_method):
         try:
             await callback.answer(text[:200], show_alert=True)
-        except TelegramBadRequest:
+        except Exception:
             return False
         return False
-    try:
-        await answer_method(text, reply_markup=reply_markup)
-        return True
-    except TelegramBadRequest:
-        return False
+
+    attempt: int
+    for attempt in range(1, max_retries + 1):
+        try:
+            await answer_method(text, reply_markup=reply_markup)
+            return True
+        except TelegramRetryAfter as error:
+            retry_after: float = float(getattr(error, "retry_after", 5) or 5)
+            LOGGER.warning(
+                "bot_send_retry_after retry_after=%.1f attempt=%d/%d text=%s",
+                retry_after,
+                attempt,
+                max_retries,
+                text[:120],
+                extra={"warning_category": "informational"},
+            )
+            await asyncio.sleep(retry_after + 1.0)
+        except TelegramBadRequest as error:
+            if _STALE_CALLBACK_PATTERN.search(str(error)):
+                LOGGER.debug("stale_or_invalid_message_send_ignored error=%s", error)
+                return False
+            LOGGER.warning("bot_send_bad_request error=%s text=%s", error, text[:120])
+            return False
+        except Exception as error:
+            LOGGER.warning("bot_send_failed error=%s text=%s", error, text[:120])
+            return False
+
+    LOGGER.warning("bot_send_exhausted_retries max_retries=%d text=%s", max_retries, text[:120])
+    return False
 
 
 def _format_elapsed(seconds: float) -> str:
@@ -262,7 +304,7 @@ async def run_callback_handler(callback: CallbackQuery) -> None:
         _progress_loop.call_soon_threadsafe(_progress_queue.put_nowait, text)
 
     def _run_pipeline(mode: str, target_chat_id: str | None) -> int:
-        application: BroadcasterApplication = BroadcasterApplication(
+        application: PipelineApplication = PipelineApplication(
             telegram_chat_id_override=target_chat_id,
             progress_callback=_on_progress,
         )

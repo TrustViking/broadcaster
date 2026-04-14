@@ -30,7 +30,7 @@ class GoogleDocsClient:
     def ping_access(self) -> str:
         # Safe ping without mutating user documents.
         try:
-            self._docs_service.documents().get(documentId="broadcaster-ping").execute()
+            self._docs_service.documents().get(documentId="pipeline-ping").execute()
             return "probe_document_found(unexpected)"
         except HttpError as error:
             status_code: Optional[int] = getattr(
@@ -73,6 +73,7 @@ class GoogleDocsClient:
                     delay_sec,
                     document_id,
                     len(requests_payload),
+                    extra={"warning_category": "informational"},
                 )
                 time.sleep(delay_sec)
 

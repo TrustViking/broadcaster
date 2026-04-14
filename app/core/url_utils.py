@@ -1,4 +1,4 @@
-"""Shared URL utility constants for the broadcaster pipeline."""
+"""Shared URL utility constants for the content pipeline."""
 
 from __future__ import annotations
 

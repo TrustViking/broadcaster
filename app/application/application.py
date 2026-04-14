@@ -150,7 +150,7 @@ def _log_llm_usage_reports(
         effective_model,
     )
 
-class BroadcasterApplication:
+class PipelineApplication:
     def __init__(
         self,
         *,
