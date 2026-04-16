@@ -518,12 +518,12 @@ class BatchRunner:
             if failures_after > failures_before:
                 self._notifier.emit(
                     f"⚠️ Дата {format_date_key_for_display(date_key)} завершена частично",
-                    to_telegram=not dry_run,
+                    to_telegram=False,
                 )
             else:
                 self._notifier.emit(
                     f"✅ Дата {format_date_key_for_display(date_key)} завершена",
-                    to_telegram=not dry_run,
+                    to_telegram=False,
                 )
 
     def _execute_single_branch_date(

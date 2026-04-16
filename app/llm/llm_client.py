@@ -223,6 +223,7 @@ def _log_llm_request_failed(
         trace_context.attempt_index,
         trace_context.request_kind,
         elapsed_ms,
+        extra={"warning_category": "informational"},
     )
 
 
