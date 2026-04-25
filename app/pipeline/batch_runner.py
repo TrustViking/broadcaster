@@ -499,7 +499,8 @@ class BatchRunner:
         date_keys: List[str] = sorted({date_key for branch_videos in processed_by_branch.values() for date_key in branch_videos.keys()})
         stage_count: int = len(branches)
         for date_key in date_keys:
-            failures_before: int = merge_run_summary.final_failure if merge_run_summary is not None else 0
+            failures_before_count: int = len(branch_failures)
+            merge_failures_before: int = merge_run_summary.final_failure if merge_run_summary is not None else 0
             for stage_index, branch in enumerate(branches, start=1):
                 self._execute_single_branch_date(
                     services=services,
@@ -514,8 +515,12 @@ class BatchRunner:
                     stage_index=stage_index,
                     stage_count=stage_count,
                 )
-            failures_after: int = merge_run_summary.final_failure if merge_run_summary is not None else 0
-            if failures_after > failures_before:
+            merge_failures_after: int = merge_run_summary.final_failure if merge_run_summary is not None else 0
+            branch_failed_this_date: bool = len(branch_failures) > failures_before_count
+            merge_partial_this_date: bool = merge_failures_after > merge_failures_before
+            if branch_failed_this_date:
+                continue
+            if merge_partial_this_date:
                 self._notifier.emit(
                     f"⚠️ Дата {format_date_key_for_display(date_key)} завершена частично",
                     to_telegram=False,

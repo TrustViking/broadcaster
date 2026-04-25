@@ -87,6 +87,12 @@ class CleanupConfig:
 
 
 @dataclass(frozen=True)
+class YtDlpConfig:
+    auto_update: bool
+    update_check_interval_days: int
+
+
+@dataclass(frozen=True)
 class PathsConfig:
     local_image_dir_template: str
     local_doc_dir_template: Optional[str]
@@ -107,6 +113,7 @@ class AppConfig:
     llm: LlmConfig
     processing: ProcessingConfig
     cleanup: CleanupConfig
+    ytdlp: YtDlpConfig
     paths: PathsConfig
     timezones: TimezoneConfig
     templates: AppTemplates

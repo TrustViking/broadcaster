@@ -130,6 +130,8 @@ class ProviderAwareSummaryTests(unittest.TestCase):
                 service_account_path=Path("service_account.json"),
                 bundled_config_path=Path("app_config.yaml"),
                 bundled_templates_path=Path("templates.yaml"),
+                ytdlp_exe_path=Path("tools/yt-dlp.exe"),
+                state_dir=Path("state"),
             ),
         )
 
@@ -286,6 +288,7 @@ class EntrypointRegressionTests(unittest.TestCase):
         return SimpleNamespace(
             processing=SimpleNamespace(mode="audit"),
             cleanup=SimpleNamespace(max_age_days=7),
+            ytdlp=SimpleNamespace(auto_update=False, update_check_interval_days=7),
             google=SimpleNamespace(
                 doc_share_mode="anyone_writer",
                 enabled=False,
@@ -330,6 +333,8 @@ class EntrypointRegressionTests(unittest.TestCase):
                         secrets_env_path=Path("secrets/.env"),
                         oauth_credentials_path=Path("secrets/credentials.json"),
                         oauth_token_path=Path("secrets/token.json"),
+                        ytdlp_exe_path=Path("tools/yt-dlp.exe"),
+                        state_dir=Path("state"),
                     ),
                 )
             )

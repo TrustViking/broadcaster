@@ -15,6 +15,10 @@ app:
   cleanup:
     max_age_days: 3               # env override: STG_CLEANUP_MAX_AGE_DAYS
 
+  ytdlp:
+    auto_update: true              # тихое обновление yt-dlp.exe раз в N дней
+    update_check_interval_days: 7
+
   google:
     enabled: true
     auth_mode: "oauth"            # "oauth" or "service_account"; env override: GOOGLE_AUTH_MODE

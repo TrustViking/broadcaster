@@ -50,6 +50,7 @@ _STALE_CALLBACK_PATTERN: re.Pattern[str] = re.compile(
     r"query is too old|query ID is invalid",
     re.IGNORECASE,
 )
+_shutdown_initiated: bool = False
 
 
 def _format_username(username: str | None) -> str:
@@ -180,6 +181,10 @@ async def start_handler(message: types.Message) -> None:
 
 @router.message(Command(commands=("stop", "stopbot")))
 async def stop_bot_handler(message: types.Message, dispatcher: Dispatcher) -> None:
+    global _shutdown_initiated
+    if _shutdown_initiated:
+        return
+    _shutdown_initiated = True
     actor: types.User | None = message.from_user
     actor_id: int = int(actor.id) if actor is not None else 0
     actor_username: str = _format_username(actor.username if actor is not None else None)
@@ -189,7 +194,10 @@ async def stop_bot_handler(message: types.Message, dispatcher: Dispatcher) -> No
         actor_username,
     )
     _get_console_logger().info("⏹ Бот остановлен по команде %s", actor_username)
-    await message.answer("⏹ Останавливаю бота...")
+    try:
+        await message.answer("⏹ Останавливаю бота...")
+    except Exception as exc:
+        LOGGER.debug("bot_stop_answer_failed reason=shutdown_race error=%s", exc)
     try:
         await dispatcher.stop_polling()
     except RuntimeError:

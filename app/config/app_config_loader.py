@@ -17,6 +17,7 @@ from app.config.settings import (
     ProcessingConfig,
     TelegramConfig,
     TimezoneConfig,
+    YtDlpConfig,
 )
 from app.config.template_loader import load_templates_from_path
 from app.config.validators import (
@@ -274,6 +275,19 @@ def _build_cleanup_config(app_settings: Dict[str, Any]) -> CleanupConfig:
     return CleanupConfig(max_age_days=cleanup_max_age_days)
 
 
+def _build_ytdlp_config(app_settings: Dict[str, Any]) -> YtDlpConfig:
+    """Build YtDlp config from YAML (primary) with defaults."""
+    ytdlp_payload: Any = app_settings.get("ytdlp")
+    if not isinstance(ytdlp_payload, dict):
+        ytdlp_payload = {}
+    auto_update: bool = bool(ytdlp_payload.get("auto_update", True))
+    interval_days: int = int(ytdlp_payload.get("update_check_interval_days", 7))
+    return YtDlpConfig(
+        auto_update=auto_update,
+        update_check_interval_days=interval_days,
+    )
+
+
 def _build_google_config(
     app_settings: Dict[str, Any],
     *,
@@ -408,6 +422,7 @@ def load_config_from_env(
     return AppConfig(
         processing=_build_processing_config(app_settings, logger=logger),
         cleanup=_build_cleanup_config(app_settings),
+        ytdlp=_build_ytdlp_config(app_settings),
         llm=_build_llm_config(app_settings),
         google=_build_google_config(
             app_settings,

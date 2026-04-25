@@ -18,12 +18,15 @@ def _has_failed_branch(state: RuntimeAnalyticsState) -> bool:
 
 
 def _resolve_run_status(exit_code: int, state: RuntimeAnalyticsState) -> str:
-    if exit_code != 0 or state.errors > 0 or _has_failed_branch(state):
+    if exit_code != 0:
+        return "failed"
+    if _has_failed_branch(state):
+        return "failed"
+    if state.docs_failed > 0 or state.telegram_failed > 0:
         return "failed"
     if (
-        state.warnings_operational > 0
-        or state.docs_failed > 0
-        or state.telegram_failed > 0
+        state.errors > 0
+        or state.warnings_operational > 0
         or state.malformed_tail_url_fragments_dropped > 0
     ):
         return "partial"

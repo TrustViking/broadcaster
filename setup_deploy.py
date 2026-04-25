@@ -361,7 +361,6 @@ def validate_core_imports() -> CheckResult:
         "google.auth",
         "google_auth_oauthlib",
         "googleapiclient",
-        "yt_dlp",
         "PIL",
         "langdetect",
         "pycountry",

@@ -64,6 +64,7 @@ from app.paths import ProjectPaths, get_project_paths
 from app.paths.name_builder import NamePathBuilder
 from app.pipeline.batch_runner import BatchRunner
 from app.pipeline.operator_notifier import OperatorNotifier
+from app.runtime.ytdlp_updater import maybe_update_ytdlp, UpdateStatus
 from app.telegram.bot_client import TelegramBotClient
 from app.telegram_bot.group_registry import handle_group_migration
 
@@ -180,6 +181,26 @@ class PipelineApplication:
         self._configure_runtime(debug_enabled=debug_enabled)
 
         config: AppConfig = _load_config_from_env(logger=self._logger)
+        # yt-dlp auto-update (тихое, не блокирует запуск при ошибке)
+        _ytdlp_update_status: UpdateStatus = maybe_update_ytdlp(
+            ytdlp_path=project_paths.ytdlp_exe_path,
+            state_dir=project_paths.state_dir,
+            enabled=config.ytdlp.auto_update,
+            interval_days=config.ytdlp.update_check_interval_days,
+            logger=self._logger,
+        )
+        if _ytdlp_update_status.current_version:
+            self._logger.info(
+                "yt-dlp version=%s update_attempted=%s update_succeeded=%s",
+                _ytdlp_update_status.current_version,
+                _ytdlp_update_status.attempted,
+                _ytdlp_update_status.succeeded,
+            )
+        else:
+            self._logger.warning(
+                "yt-dlp not found at %s - metadata fetching will fail",
+                project_paths.ytdlp_exe_path,
+            )
         run_daily_cleanup(
             logger=self._logger,
             project_root=project_paths.project_root,
