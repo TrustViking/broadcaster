@@ -194,8 +194,9 @@ def run_startup_health_checks(
     )
 
     log_section(logger=logger, title="Environment")
+    google_auth_mode: str = "unknown"
     try:
-        google_auth_mode: str = services.factory.get_auth_mode()
+        google_auth_mode = services.factory.get_auth_mode()
         logger.info("Google auth mode: %s", google_auth_mode)
         if google_auth_mode == "oauth":
             oauth_credentials_path, oauth_token_path = services.factory.get_oauth_paths()
@@ -223,22 +224,28 @@ def run_startup_health_checks(
         startup_errors.append(issue)
         log_error_event(logger, "%s", issue, reason_code="google_runtime_account_lookup_failed")
 
-    try:
-        google_project_id, google_project_name = services.factory.get_google_project_info(
-            strict=True
-        )
+    if google_auth_mode == "oauth":
         logger.info(
-            "Google project resolved via API: name=%s id=%s",
-            google_project_name,
-            google_project_id,
+            "Google project API lookup skipped: OAuth credentials do not carry project_id "
+            "(informational, not an error)."
         )
-    except Exception as error:
-        log_warning_informational(
-            logger,
-            "Google project API lookup skipped: %s",
-            summarize_error(error),
-            reason_code="google_project_id_unavailable",
-        )
+    else:
+        try:
+            google_project_id, google_project_name = services.factory.get_google_project_info(
+                strict=True
+            )
+            logger.info(
+                "Google project resolved via API: name=%s id=%s",
+                google_project_name,
+                google_project_id,
+            )
+        except Exception as error:
+            log_warning_informational(
+                logger,
+                "Google project API lookup skipped: %s",
+                summarize_error(error),
+                reason_code="google_project_id_unavailable",
+            )
 
     log_section(logger=logger, title="Google APIs")
     try:
