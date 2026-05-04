@@ -52,6 +52,7 @@ a = Analysis(
         'app.core.url_utils',
         'app.core.url_normalizer',
         'app.core.cta_detection',
+        'app.core.confusables',
         'app.core.description_cleaner',
         'app.core.official_links',
         'app.core.video_title_cleanup',
@@ -92,6 +93,7 @@ a = Analysis(
         'app.llm.merges.quality_diagnostics',
         'app.llm.merges.quality_normalizer',
         'app.llm.merges.quality_service_lines',
+        'app.llm.merges.script_mix_repair',
         # net
         'app.net.http_client',
         # media
@@ -99,8 +101,8 @@ a = Analysis(
         # resources
         'app.resources.resource_loader',
         'app.resources.text_catalog',
+        'app.resources.heading_resolver',
         # planning
-        'app.planning.batch_planner',
         'app.planning.batch_planner',
         'app.planning.sheet_loader',
         'app.planning.sheet_parser',

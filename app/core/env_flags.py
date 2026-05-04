@@ -76,18 +76,19 @@ _RANGE_SEP = r"[\-\u2010\u2011\u2012\u2013\u2014\u2212]"
 _CHAPTER_RANGE_LINE_RE = re.compile(
     rf"^\s*{_TIME_TOKEN}\s*{_RANGE_SEP}\s*{_TIME_TOKEN}\s*\S.*$"
 )
+_BULLET_PREFIX_RE = re.compile(r"^\s*(?:[-•—–*·]|\d{1,3}[.)])\s+")
 _HH_MM_SS_ANYWHERE_RE = re.compile(r"\d{1,2}\s*:\s*\d{1,2}\s*:\s*\d{2}")
 _MIN_RANGE_BLOCK_SIZE: int = 3
 
 _HH_MM_SS_STRICT = r"\d{1,2}\s*:\s*\d{1,2}\s*:\s*\d{2}"
 _TAIL_HH_MM_SS_LINE_RE = re.compile(
-    rf"^\s*{_HH_MM_SS_STRICT}\s+\S.*$"
+    rf"^\s*{_HH_MM_SS_STRICT}(?:\s+\S.*)?$"
 )
 _TAIL_HH_MM_SS_RANGE_RE = re.compile(
     rf"^\s*(?:"
     rf"{_HH_MM_SS_STRICT}\s*{_RANGE_SEP}\s*{_TIME_TOKEN}"
     rf"|{_TIME_TOKEN}\s*{_RANGE_SEP}\s*{_HH_MM_SS_STRICT}"
-    rf")\s*\S.*$"
+    rf")(?:\s+\S.*)?$"
 )
 
 
@@ -99,19 +100,25 @@ def _is_timestamp_heading(stripped_line: str, *, strict_only: bool = False) -> b
     return False
 
 
+def _strip_bullet_prefix(line: str) -> str:
+    return _BULLET_PREFIX_RE.sub("", line, count=1)
+
+
 def _is_chapter_or_range_line(line_stripped: str) -> bool:
     """Строка матчит либо single timestamp-line, либо range-line."""
+    line_without_bullet: str = _strip_bullet_prefix(line_stripped)
     return bool(
-        _CHAPTER_LINE_RE.match(line_stripped)
-        or _CHAPTER_RANGE_LINE_RE.match(line_stripped)
+        _CHAPTER_LINE_RE.match(line_without_bullet)
+        or _CHAPTER_RANGE_LINE_RE.match(line_without_bullet)
     )
 
 
 def _is_tail_orphan_candidate(line_no_newline: str) -> bool:
     """Строка подходит под tail-orphan cleanup: одиночная HH:MM:SS или range с HH:MM:SS."""
+    line_without_bullet: str = _strip_bullet_prefix(line_no_newline)
     return bool(
-        _TAIL_HH_MM_SS_LINE_RE.match(line_no_newline)
-        or _TAIL_HH_MM_SS_RANGE_RE.match(line_no_newline)
+        _TAIL_HH_MM_SS_LINE_RE.match(line_without_bullet)
+        or _TAIL_HH_MM_SS_RANGE_RE.match(line_without_bullet)
     )
 
 
@@ -153,10 +160,6 @@ def _strip_tail_orphan_hms(lines: list[str]) -> list[str]:
 
     return lines[:result_end]
 
-
-# TODO: поддержать timestamp-lines с маркерами списка: "- 00:00 Intro", "• 00:00 Intro",
-# "1. 00:00 Intro". Сейчас такие строки НЕ распознаются _CHAPTER_LINE_RE, и блоки с
-# маркерами не будут удалены. Отдельной задачей.
 def strip_chapter_timestamps(text: str) -> str:
     raw_text: str = str(text or "")
     if not raw_text:
@@ -193,7 +196,9 @@ def strip_chapter_timestamps(text: str) -> str:
             continue
 
         # --- Режим B: без заголовка, блок начинается с 0:00 ---
-        if _CHAPTER_ZERO_START_RE.match(line.rstrip("\n\r")):
+        line_no_newline: str = line.rstrip("\n\r")
+        line_without_bullet: str = _strip_bullet_prefix(line_no_newline)
+        if _CHAPTER_ZERO_START_RE.match(line_without_bullet):
             j = i
             while j < len(lines) and _is_chapter_or_range_line(lines[j].rstrip("\n\r")):
                 j += 1
@@ -206,9 +211,14 @@ def strip_chapter_timestamps(text: str) -> str:
             continue
 
         # --- Режим C: headless range-блок, порог 3+, хотя бы одна строка с hh:mm:ss ---
-        if _CHAPTER_RANGE_LINE_RE.match(line.rstrip("\n\r")):
+        if _CHAPTER_RANGE_LINE_RE.match(line_without_bullet):
             j = i
-            while j < len(lines) and _CHAPTER_RANGE_LINE_RE.match(lines[j].rstrip("\n\r")):
+            while (
+                j < len(lines)
+                and _CHAPTER_RANGE_LINE_RE.match(
+                    _strip_bullet_prefix(lines[j].rstrip("\n\r"))
+                )
+            ):
                 j += 1
             block_size = j - i
             if block_size >= _MIN_RANGE_BLOCK_SIZE:

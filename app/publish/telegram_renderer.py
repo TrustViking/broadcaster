@@ -13,6 +13,7 @@ from app.core.models import (
     SanitizedPublishBlock,
     VideoMetadata,
 )
+from app.observability.runtime_analytics import record_publish_gate_blocked
 from app.planning import planned_video_block_language
 from app.publish.post_llm_sanitation import (
     MergedPublicationPayload,
@@ -89,6 +90,7 @@ def _build_merged_publication_payload(
             if bool(getattr(sanitized_payload, "has_publish_stage_opener_cta", False))
             else "no",
         )
+        record_publish_gate_blocked(language=language, target="telegram")
         return None
     return MergedPublicationPayload(
         title_text=sanitized_payload.title_text.strip(),

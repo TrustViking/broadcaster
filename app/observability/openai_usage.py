@@ -23,6 +23,7 @@ def log_run_local_openai_usage(logger: logging.Logger, *, effective_model: str) 
         f"repair_calls={usage_state.repair_calls}",
         f"structured_calls={usage_state.structured_calls}",
         f"fallback_calls={usage_state.fallback_calls}",
+        f"heading_translation_calls={usage_state.heading_translation_calls}",
         f"models_used={model_names}",
     ]
     tokens_known: bool = (

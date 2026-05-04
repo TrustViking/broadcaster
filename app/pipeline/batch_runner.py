@@ -46,6 +46,16 @@ from .operator_notifier import OperatorNotifier
 from .runtime_services import BatchServices, build_runtime_services
 
 
+def _date_sort_key(date_key: str) -> tuple[int, str]:
+    from datetime import datetime
+    try:
+        parsed = datetime.strptime(date_key, "%d%m%y")
+    except ValueError:
+        # Невалидные ключи идут в конец, сохраняя стабильный порядок между собой
+        return (1, date_key)
+    return (0, parsed.strftime("%Y%m%d"))
+
+
 @dataclass(frozen=True)
 class AuditBranch:
     name: str
@@ -101,6 +111,10 @@ class BatchRunner:
             debug_artifact_writer=self._debug_writer,
             notifier=notifier,
         )
+
+    @property
+    def notifier(self) -> OperatorNotifier:
+        return self._notifier
 
     @property
     def last_merge_run_summary(self) -> Optional[MergeRunSummary]:
@@ -496,7 +510,10 @@ class BatchRunner:
         branch_failures: List[str],
         run_id: str = "",
     ) -> None:
-        date_keys: List[str] = sorted({date_key for branch_videos in processed_by_branch.values() for date_key in branch_videos.keys()})
+        date_keys: List[str] = sorted(
+            {date_key for branch_videos in processed_by_branch.values() for date_key in branch_videos.keys()},
+            key=_date_sort_key,
+        )
         stage_count: int = len(branches)
         for date_key in date_keys:
             failures_before_count: int = len(branch_failures)
@@ -552,6 +569,7 @@ class BatchRunner:
             return
         branch_started_at: float = time.perf_counter()
         self._logger.info("audit_branch_start branch=%s", branch.name)
+        final_failure_before: int = merge_run_summary.final_failure
         try:
             self._branch_executor.execute(
                 services=services,
@@ -575,7 +593,10 @@ class BatchRunner:
                 date_key=date_key,
             )
             branch_status: str = "ok"
-            if branch.name == BRANCH_MERGE and merge_run_summary.final_failure > 0:
+            if (
+                branch.name == BRANCH_MERGE
+                and merge_run_summary.final_failure > final_failure_before
+            ):
                 branch_status = "partial"
             self._logger.info(
                 "audit_branch_done branch=%s status=%s date_key=%s elapsed_ms=%d",
@@ -609,4 +630,3 @@ class BatchRunner:
             )
             self._logger.error("audit_branch_done branch=%s status=failed date_key=%s reason=%s", branch.name, date_key, error)
             log_error_event(self._logger, "branch=%s date=%s failed: %s", branch.name, date_key, error, reason_code="branch_date_failed")
-

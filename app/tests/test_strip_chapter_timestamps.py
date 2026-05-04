@@ -127,17 +127,10 @@ class TestStripChapterTimestamps:
         inp = "Text.\n\nChapters:\n00 : 00 Intro\n01 : 30 Part\n\nEnd."
         assert strip_chapter_timestamps(inp) == "Text.\n\nEnd."
 
-    # === Известное ограничение (документируем) ===
-    def test_bullet_prefixed_timestamps_currently_unsupported(self):
-        """
-        ИЗВЕСТНОЕ ОГРАНИЧЕНИЕ: timestamp-lines с маркерами списка (-, •, 1.) сейчас
-        не распознаются. Документируется тестом, чтобы когда фикс появится,
-        этот тест стал passing.
-        """
+    def test_bullet_prefixed_timestamps_with_heading_are_removed(self):
         inp = "Text.\n\nChapters:\n- 00:00 Intro\n- 01:30 Part\n\nEnd."
         result = strip_chapter_timestamps(inp)
-        # Сейчас маркированные не удаляются. После фикса — удалятся, и тест надо обновить.
-        assert "- 00:00 Intro" in result
+        assert result == "Text.\n\nEnd."
 
     # === Режим C: headless range-блоки ===
     def test_headless_range_block_screenshot_case(self):
@@ -342,3 +335,61 @@ class TestStripChapterTimestamps:
         )
         result = strip_chapter_timestamps(inp)
         assert result == "Text before.\n\nText after."
+
+    def test_bullet_dash_timestamp_block_with_heading_is_removed(self):
+        inp = (
+            "Some intro text.\n\n"
+            "Таймкоды:\n"
+            "- 00:00 Intro\n"
+            "- 03:21 Body\n"
+            "- 09:45 Outro"
+        )
+        assert strip_chapter_timestamps(inp) == "Some intro text.\n\n"
+
+    def test_bullet_dot_timestamp_block_is_removed(self):
+        inp = (
+            "• 0:00 Start\n"
+            "• 1:23 Middle\n"
+            "• 2:45 End"
+        )
+        assert strip_chapter_timestamps(inp) == ""
+
+    def test_numbered_timestamp_block_is_removed(self):
+        inp = (
+            "Description.\n\n"
+            "1. 00:00 Intro\n"
+            "2. 02:15 Demo\n"
+            "3. 05:42 Q&A"
+        )
+        assert strip_chapter_timestamps(inp) == "Description.\n\n"
+
+    def test_em_dash_timestamp_block_with_heading_is_removed(self):
+        inp = (
+            "Description.\n\n"
+            "Chapters:\n"
+            "— 00:00 Intro\n"
+            "— 03:15 Body\n"
+            "— 09:00 Outro"
+        )
+        assert strip_chapter_timestamps(inp) == "Description.\n\n"
+
+    def test_other_bullet_timestamp_blocks_are_removed(self):
+        for marker in ("*", "·", "–"):
+            inp = (
+                "Description.\n\n"
+                f"{marker} 00:00 Intro\n"
+                f"{marker} 03:15 Body\n"
+                f"{marker} 09:00 Outro"
+            )
+            assert strip_chapter_timestamps(inp) == "Description.\n\n"
+
+    def test_tail_orphan_with_bullet_is_removed(self):
+        inp = (
+            "Real content here.\n\n"
+            "- 00:01:23"
+        )
+        assert strip_chapter_timestamps(inp) == "Real content here.\n"
+
+    def test_non_timestamp_bullet_line_is_kept(self):
+        inp = "- 12 апреля, выступление"
+        assert strip_chapter_timestamps(inp) == inp

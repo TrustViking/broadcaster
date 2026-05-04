@@ -115,6 +115,7 @@ class TestGetDocumentRetry:
         mock_service = MagicMock()
         expected_doc = {"documentId": "doc123", "body": {"content": []}}
         mock_service.documents().get().execute.return_value = expected_doc
+        mock_service.documents().get.reset_mock()
         client = GoogleDocsClient(mock_service)
 
         result = client.get_document("doc123")

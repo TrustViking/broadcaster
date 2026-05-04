@@ -25,6 +25,7 @@ from app.observability.runtime_analytics import (
     record_date_branch_execution,
     record_docs_created,
     record_docs_failed,
+    record_merge_final_failure,
     record_stage_duration,
     record_telegram_failed,
     record_telegram_sent,
@@ -100,8 +101,8 @@ def _resolve_merge_publish_decision(
                 reasons_list: List[str] = list(attempt.validation_reasons or [])
                 if reasons_list:
                     reasons_text = ", ".join(reasons_list)
-                total_attempts: int = 1 + len(attempt.rejected_attempts)
-                attempts_text = f", {total_attempts} попыток"
+                total_attempts: int = len(attempt.rejected_attempts)
+                attempts_text = f", попыток: {total_attempts}"
             failure_details.append(
                 f"• {language} ({slot_key}) - забраковано: {reasons_text}{attempts_text}"
             )
@@ -111,6 +112,7 @@ def _resolve_merge_publish_decision(
             f"{details_text}\n\n"
             "Документ не создан."
         )
+        record_merge_final_failure(count=1)
         return MergePublishDecision(
             create_doc=False,
             publish_telegram=False,

@@ -14,7 +14,11 @@ from app.application.application import (
     _log_llm_usage_reports,
 )
 from app.application import application as application_module
-from app.llm.llm_client import reset_run_local_openai_usage
+from app.llm.llm_client import (
+    _record_run_local_openai_request,
+    get_run_local_openai_usage,
+    reset_run_local_openai_usage,
+)
 from app.observability.openai_usage import log_run_local_openai_usage
 from app.bootstrap.run_context import RunContext, StartupContext
 from app.observability.runtime_analytics import log_run_context
@@ -71,6 +75,7 @@ class ProviderAwareUsageHooksTests(unittest.TestCase):
         usage_state = reset_run_local_openai_usage()
         usage_state.requests_sent = 2
         usage_state.structured_calls = 2
+        usage_state.heading_translation_calls = 1
         usage_state.models_used.add("gpt-5.2")
         with self.assertLogs(logger, level="INFO") as captured:
             log_run_local_openai_usage(logger, effective_model="gpt-5.2")
@@ -79,6 +84,22 @@ class ProviderAwareUsageHooksTests(unittest.TestCase):
         self.assertIn("scope=run_local", text)
         self.assertIn("source_of_truth_for_run=yes", text)
         self.assertIn("effective_model=gpt-5.2", text)
+        self.assertIn("heading_translation_calls=1", text)
+
+    def test_heading_translation_request_kind_uses_separate_counter(self) -> None:
+        state = reset_run_local_openai_usage()
+
+        _record_run_local_openai_request(
+            model_name="gpt-test",
+            response=MagicMock(),
+            request_kind="heading_translation",
+        )
+
+        state = get_run_local_openai_usage()
+        self.assertEqual(1, state.requests_sent)
+        self.assertEqual(1, state.heading_translation_calls)
+        self.assertEqual(0, state.fallback_calls)
+        self.assertEqual(0, state.structured_calls)
 
 class ProviderAwareSummaryTests(unittest.TestCase):
     def _run_context(

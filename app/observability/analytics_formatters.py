@@ -28,6 +28,9 @@ def _resolve_run_status(exit_code: int, state: RuntimeAnalyticsState) -> str:
         state.errors > 0
         or state.warnings_operational > 0
         or state.malformed_tail_url_fragments_dropped > 0
+        or state.merge_final_failure > 0
+        or state.publish_gate_blocked_count > 0
+        or state.telegram_skipped > 0
     ):
         return "partial"
     return "success"
@@ -60,10 +63,23 @@ def _format_branch_summary(
             branch_label,
             BranchAnalyticsState(),
         )
-        branch_parts.append(
-            f"{branch_label}:"
-            f"{'failed' if branch_state.failed else ('success' if branch_state.completed else 'not_run')}"
-        )
+        if branch_state.failed:
+            branch_status = "failed"
+        elif branch_state.completed:
+            # Merge-ветка может завершиться без краха, но с фактическими
+            # деградациями публикации (final_failure либо publish-gate fallback).
+            # В этом случае summary должен отражать `partial`, чтобы
+            # соответствовать общему status=partial.
+            if branch_label == BRANCH_MERGE and (
+                state.merge_final_failure > 0
+                or state.publish_gate_blocked_count > 0
+            ):
+                branch_status = "partial"
+            else:
+                branch_status = "success"
+        else:
+            branch_status = "not_run"
+        branch_parts.append(f"{branch_label}:{branch_status}")
     return ",".join(branch_parts)
 
 

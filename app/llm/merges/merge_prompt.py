@@ -14,7 +14,11 @@ from app.core.description_cleaner import (
 from app.core.text_utils import normalize_multiline_text
 from app.resources.resource_loader import load_text_resource
 from app.core.models import PlannedVideo
-from app.llm.merges.merge_constants import SEMANTIC_TOKEN_PATTERN
+from app.llm.merges.merge_constants import (
+    COMPACT_BULLET_MAX,
+    COMPACT_BULLET_MIN,
+    SEMANTIC_TOKEN_PATTERN,
+)
 from app.llm.merges.merge_retry import (
     ExpandedRetryProfile,
     _format_template_placeholders,
@@ -202,9 +206,9 @@ def build_llm_merge_prompt_text(
         "Avoid asserting strong person titles or role labels unless they are clearly necessary and well-supported by the sources.\n"
         f"{cross_domain_sentence_policy_block}\n"
         f"{link_policy_block}\n"
-        "An optional one-line closing sentence should be a light practical CTA with 2 to 5 hashtags.\n"
+        "An optional final hashtags line is allowed (2 to 5 hashtags on a single line). Do not write a closing call-to-action paragraph.\n"
         "Do not enumerate sources as 1) 2) 3).\n"
-        "Do not write a dry digest, protocol, or generic CTA block.\n"
+        "Do not write a dry digest, protocol, or generic engagement block.\n"
         "Do not output generic slogans, abstract editorial text, or propagandistic phrasing.\n"
         "Do not replace concrete facts with broad statements like 'an important conversation about everything'.\n"
         'Output only one strict JSON object with exactly these keys: title, description.\n\n'
@@ -292,8 +296,8 @@ def _select_merge_contract_mode(
     contract_templates_by_mode: dict[str, str] = _merge_contract_templates_from_templates(
         templates
     )
-    compact_bullet_min: int = 4
-    compact_bullet_max: int = 7
+    compact_bullet_min: int = COMPACT_BULLET_MIN
+    compact_bullet_max: int = COMPACT_BULLET_MAX
     compact_bullet_range: str = f"{compact_bullet_min}-{compact_bullet_max}"
     if source_count >= 3:
         if source_count <= 3:

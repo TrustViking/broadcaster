@@ -145,7 +145,7 @@ def _targeted_duplicate_retry_profile(
         "CRITICAL: Previous attempt had a structural error — the opening paragraph was repeated or a CTA appeared where the hook should be.",
         "RULE 1 — HOOK STRUCTURE: The very first paragraph must be the hook: a question, tension, or key thesis. It appears exactly ONCE.",
         "RULE 2 — NO DUPLICATION: Paragraph 2 and later must NOT restate, paraphrase, or echo any sentence from paragraph 1. If paragraph 1 ends with a question, paragraph 2 must answer it with new facts — never repeat the question.",
-        "RULE 3 — NO CTA IN HOOK POSITION: Do NOT place 'Subscribe', 'Follow', 'Watch', 'Share', 'Подпишитесь', 'Поширюйте', 'Смотрите', or any call to action as the first paragraph. CTA belongs only at the very end, after all bullets.",
+        "RULE 3 — NO CTA: Do NOT place 'Subscribe', 'Follow', 'Watch', 'Share', 'Подпишитесь', 'Поширюйте', 'Смотрите', or any call to action anywhere in the description. The output must not contain a CTA paragraph at all.",
         "RULE 4 — PARAGRAPH 2 MUST BE BULLETS: Immediately after the hook, start the bullet block. The second paragraph must begin with a bullet marker (🔹, ⚖, 📌, etc.), not with another prose sentence.",
     )
     reinforcement_lines: tuple[str, ...] = _load_retry_reinforcement_lines(
@@ -301,8 +301,8 @@ def _targeted_cta_opener_retry_profile(
     fallback_lines: tuple[str, ...] = (
         "CRITICAL: Previous attempt placed a CTA (subscribe/follow/watch) as the first paragraph.",
         "RULE: The first paragraph must be the editorial hook — a question, tension, or key thesis.",
-        "CTA belongs ONLY at the very end, after all bullets and before hashtags.",
-        "Rewrite so paragraph 1 is the hook, and any CTA is the last line before hashtags.",
+        "Do not write a CTA at all. Remove any subscribe/follow/watch line.",
+        "Rewrite so paragraph 1 is the hook and there is no CTA paragraph anywhere in the description.",
     )
     reinforcement_lines: tuple[str, ...] = _load_retry_reinforcement_lines(
         templates=templates,

@@ -237,7 +237,7 @@ def _build_llm_config(app_settings: Dict[str, Any]) -> LlmConfig:
 
     yaml_model: str = str(llm_payload.get("model") or "").strip() or DEFAULT_OPENAI_MODEL
     yaml_timeout: float = float(llm_payload.get("timeout_sec", 120.0) or 120.0)
-    yaml_max_output: int = int(llm_payload.get("max_output_tokens", 1000) or 1000)
+    yaml_max_output: int = int(llm_payload.get("max_output_tokens", 2000) or 2000)
     yaml_pre_delay: float = float(llm_payload.get("pre_delay_sec", 5.0) or 5.0)
 
     openai_model: str = os.getenv("OPENAI_MODEL", "").strip() or yaml_model

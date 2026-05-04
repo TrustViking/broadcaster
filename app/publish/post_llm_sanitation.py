@@ -309,7 +309,7 @@ def _apply_publish_cta_gate(
     CTA classification (``TailParser.is_standalone_cta_line`` or
     ``extract_cta_tail``), so it is dropped unconditionally.
 
-    The log line ``merged_publish_cta_gate_dropped`` is preserved for
+    The log line ``publish_cta_gate_dropped`` is preserved for
     observability with the ``cta_chars=`` field counting the dropped
     text length.
 
@@ -320,7 +320,7 @@ def _apply_publish_cta_gate(
     sanitized_cta_text: str = str(cta_text or "").strip()
     if sanitized_cta_text:
         LOGGER.info(
-            "merged_publish_cta_gate_dropped lang=%s source=%s cta_chars=%d",
+            "publish_cta_gate_dropped lang=%s source=%s cta_chars=%d",
             language,
             source_label,
             len(sanitized_cta_text),
@@ -350,7 +350,7 @@ def build_sanitized_merged_publication_payload(
     )
     source_label: str = resolve_post_llm_source_label(
         merge_attempt,
-        default_label="merged_publish",
+        default_label="publish",
     )
     block_generation_mode: str = resolve_block_generation_mode(
         merge_attempt=merge_attempt,
@@ -420,14 +420,14 @@ def build_sanitized_merged_publication_payload(
     )
     if has_publish_stage_duplicate:
         LOGGER.error(
-            "merged_publish_duplicate_paragraph_detected lang=%s source=%s description_chars=%d",
+            "publish_duplicate_paragraph_detected lang=%s source=%s description_chars=%d",
             language,
             source_label,
             len(final_description),
         )
     if has_publish_stage_opener_cta:
         LOGGER.error(
-            "merged_publish_opener_cta_detected lang=%s source=%s description_chars=%d",
+            "publish_opener_cta_detected lang=%s source=%s description_chars=%d",
             language,
             source_label,
             len(final_description),
@@ -451,7 +451,7 @@ def build_sanitized_merged_publication_payload(
     )
     recommended_block_status: str = "emitted" if final_selected_youtube_urls else "skipped"
     LOGGER.info(
-        "merged_publish_sanitation_applied=yes lang=%s source=%s cta_found=%s hashtags_found=%s hashtags_split_from_cta=%s tail_layout=%s recommended_materials_text_candidates_ignored=%d raw_youtube_urls_found=%d deduped_youtube_candidates=%d repeated_youtube_candidates=%d recommended_materials_final_count=%d recommended_materials_block=%s official_links_heading_found=%s official_links_text_links=%d official_links_source_links=%d official_links_final_count=%d official_links_block=%s official_links_dedup_applied=%s official_links_non_youtube_only=yes empty_official_links_suppressed=%d ignored_llm_youtube_urls=%d",
+        "publish_sanitation_applied=yes lang=%s source=%s cta_found=%s hashtags_found=%s hashtags_split_from_cta=%s tail_layout=%s recommended_materials_text_candidates_ignored=%d raw_youtube_urls_found=%d deduped_youtube_candidates=%d repeated_youtube_candidates=%d recommended_materials_final_count=%d recommended_materials_block=%s official_links_heading_found=%s official_links_text_links=%d official_links_source_links=%d official_links_final_count=%d official_links_block=%s official_links_dedup_applied=%s official_links_non_youtube_only=yes empty_official_links_suppressed=%d ignored_llm_youtube_urls=%d",
         language,
         source_label,
         "yes" if sanitization_result.cta_found else "no",

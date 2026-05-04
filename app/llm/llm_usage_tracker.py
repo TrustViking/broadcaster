@@ -10,6 +10,7 @@ class RunLocalOpenAIUsageState:
     repair_calls: int = 0
     structured_calls: int = 0
     fallback_calls: int = 0
+    heading_translation_calls: int = 0
     models_used: Set[str] = field(default_factory=set)
     input_tokens: Optional[int] = None
     output_tokens: Optional[int] = None

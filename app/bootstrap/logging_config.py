@@ -5,7 +5,7 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Tuple
+from typing import Optional, Tuple
 
 from app.core.constants import (
     LOGGER_NAME_DEFAULT,
@@ -15,6 +15,8 @@ from app.paths._root import PROJECT_ROOT
 
 LOG_FILE_ENV_VAR: str = "LOG_FILE"
 CONSOLE_LOGGER_SUFFIX: str = "console"
+_CURRENT_DETAILED_LOG_FILE_PATH: Optional[Path] = None
+_CURRENT_SCREEN_LOG_FILE_PATH: Optional[Path] = None
 
 
 def resolve_base_logger_name() -> str:
@@ -114,6 +116,10 @@ def resolve_log_file_paths(*, entrypoint_label: str = LOGGER_NAME_DEFAULT) -> Tu
     return detailed_log_file_path, screen_log_file_path
 
 
+def get_current_log_file_paths() -> Tuple[Optional[Path], Optional[Path]]:
+    return _CURRENT_DETAILED_LOG_FILE_PATH, _CURRENT_SCREEN_LOG_FILE_PATH
+
+
 class _ConsoleChannelFilter(logging.Filter):
     """Filter for the base/root logger's screen handlers.
 
@@ -173,6 +179,7 @@ def _remove_and_close_handlers(logger: logging.Logger) -> None:
 
 
 def setup_logging(debug: bool) -> None:
+    global _CURRENT_DETAILED_LOG_FILE_PATH, _CURRENT_SCREEN_LOG_FILE_PATH
     base_logger_name: str = resolve_base_logger_name()
 
     detailed_log_file_path: Path
@@ -180,6 +187,8 @@ def setup_logging(debug: bool) -> None:
     detailed_log_file_path, screen_log_file_path = resolve_log_file_paths(
         entrypoint_label=base_logger_name
     )
+    _CURRENT_DETAILED_LOG_FILE_PATH = detailed_log_file_path
+    _CURRENT_SCREEN_LOG_FILE_PATH = screen_log_file_path
     detailed_log_file_path.parent.mkdir(parents=True, exist_ok=True)
     screen_log_file_path.parent.mkdir(parents=True, exist_ok=True)
 

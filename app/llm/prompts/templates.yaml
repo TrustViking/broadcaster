@@ -100,13 +100,10 @@ llm:
     Do not pick short promo, teaser, clip, or secondary videos.
     If you include selected YouTube URLs, place each selected URL on its own line near the end of the description before any official links block.
     Optional official links block: if sources contain meaningful official links, you may add a short block before the hashtags line.
-    Heading must be language-aware:
-    Ukrainian: "🌐 Офіційні ресурси:"
-    English: "🌐 Official links:"
-    Russian: "🌐 Официальные ссылки:"
+    Heading must be in the same language as the description body. Use the format `🌐 <localized "Official links">:` where the localized phrase is the natural translation of "Official links" into the description's language. Examples: Ukrainian "🌐 Офіційні ресурси:", English "🌐 Official links:", Russian "🌐 Официальные ссылки:". For any other language, write the heading in that language using the same format. Do not invent extra wording — translate "Official links" only, then add the trailing colon.
     Then list 1 to 3 meaningful links from sources only.
     Never include YouTube source links in this official links block.
-    Do not write a closing call-to-action paragraph yourself and do not address the viewer with engagement requests like "like", "share", "watch", "follow", or "write in the comments". A standardized "subscribe to channel" CTA is appended to the published output by the post-processing layer — do not duplicate it. The description body ends with the content body or, if present, the optional links blocks. The publishing layer handles the CTA line and the hashtags line. There is no engagement line in your output.
+    Do not write any closing call-to-action paragraph and do not address the viewer with engagement requests like "like", "share", "watch", "follow", "subscribe", or "write in the comments". The description body ends with the content body or, if present, the optional links block followed by the hashtags line. There is no closing engagement line in your output, and post-processing adds no CTA.
     If you add hashtags, they must be written on a separate final line.
     The hashtags line must be a standalone final line containing only 2 to 5 relevant hashtags.
     Keep the body concrete; avoid abstract slogans.
@@ -266,7 +263,7 @@ llm:
       - "CRITICAL: Previous attempt had a structural error - the opening paragraph was repeated or a CTA appeared where the hook should be."
       - "RULE 1 - HOOK STRUCTURE: The very first paragraph must be the hook: a question, tension, or key thesis. It appears exactly ONCE."
       - "RULE 2 - NO DUPLICATION: Paragraph 2 and later must NOT restate, paraphrase, or echo any sentence from paragraph 1. If paragraph 1 ends with a question, paragraph 2 must answer it with new facts - never repeat the question."
-      - "RULE 3 - NO CTA: Do NOT place 'Subscribe', 'Follow', 'Watch', 'Share', 'Like', 'Подпишитесь', 'Поширюйте', 'Смотрите', or any call to action anywhere in the description. The post-processing layer appends a standardized 'subscribe to channel' line — your output must not contain any CTA paragraph at all."
+      - "RULE 3 - NO CTA: Do NOT place 'Subscribe', 'Follow', 'Watch', 'Share', 'Like', 'Подпишитесь', 'Підпишіться', 'Поширюйте', 'Смотрите', or any call to action anywhere in the description. No CTA is added by post-processing either — your output must not contain any CTA paragraph at all."
       - "RULE 4 - PARAGRAPH 2 MUST BE BULLETS: Immediately after the hook, start the bullet block. The second paragraph must begin with a bullet marker (🔹, ⚖, 📌, etc.), not with another prose sentence."
     overloaded_bullet:
       - "Previous attempt had {overloaded_count} overloaded bullet(s) - single bullets listing {bullet_name_limit}+ multi-word names or spanning {bullet_char_limit}+ characters."

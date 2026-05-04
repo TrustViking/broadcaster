@@ -264,6 +264,8 @@ def _record_run_local_openai_request(
     state.models_used.add(cleaned_model_name)
     if request_kind == "structured":
         state.structured_calls += 1
+    elif request_kind == "heading_translation":
+        state.heading_translation_calls += 1
     else:
         state.fallback_calls += 1
     input_tokens, output_tokens = _extract_openai_usage_tokens(response)

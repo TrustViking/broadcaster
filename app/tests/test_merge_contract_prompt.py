@@ -42,7 +42,8 @@ class MergeContractPromptTests(MergeContractServiceBase):
         self.assertIn("Do not include any URLs in the output.", prompt_text)
         self.assertIn("Link blocks will be assembled later by the system.", prompt_text)
         self.assertIn("Do not use emoji in the title.", prompt_text)
-        self.assertIn("optional one-line close", prompt_text.lower())
+        self.assertIn("optional final hashtags line is allowed", prompt_text.lower())
+        self.assertIn("never write a cta paragraph anywhere", prompt_text.lower())
         self.assertNotIn("URL:", prompt_text)
         self.assertIn("Paragraph one.\n\nParagraph two.", prompt_text)
 
