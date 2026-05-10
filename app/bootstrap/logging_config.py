@@ -382,3 +382,30 @@ def setup_bot_logging(*, debug: bool = False) -> None:
     logging.getLogger("google_genai.models").setLevel(logging.WARNING)
     logging.getLogger("googleapiclient.http").setLevel(logging.ERROR)
     logging.getLogger("httpx").setLevel(logging.WARNING)
+
+    class _AiogramFetchUpdateDowngradeFilter(logging.Filter):
+        """Downgrade transient aiogram polling errors from ERROR to WARNING.
+
+        ServerDisconnectedError and Request timeout error during getUpdates
+        are normal transient network glitches in long-running polling and
+        should not pollute the operator-facing error stream.
+        """
+
+        _PATTERNS: tuple[str, ...] = (
+            "Failed to fetch updates",
+        )
+
+        def filter(self, record: logging.LogRecord) -> bool:
+            if record.name != "aiogram.dispatcher":
+                return True
+            if record.levelno < logging.ERROR:
+                return True
+            message: str = record.getMessage()
+            for pattern in self._PATTERNS:
+                if pattern in message:
+                    record.levelno = logging.WARNING
+                    record.levelname = "WARNING"
+                    return True
+            return True
+
+    logging.getLogger("aiogram.dispatcher").addFilter(_AiogramFetchUpdateDowngradeFilter())

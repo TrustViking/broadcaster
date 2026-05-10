@@ -23,6 +23,7 @@ from app.bootstrap.logging_config import (
 )
 
 router: Router = Router()
+_SEND_MESSAGE_TIMEOUT_SEC: float = 15.0
 LOGGER: logging.Logger = _get_logger_impl("bot")
 _pipeline_lock: threading.Lock = threading.Lock()
 _VALID_AUDIT_MODES: tuple[str, str, str] = ("nomerge", "merge", "audit")
@@ -132,8 +133,21 @@ async def _safe_send_message(
     attempt: int
     for attempt in range(1, max_retries + 1):
         try:
-            await answer_method(text, reply_markup=reply_markup)
+            await asyncio.wait_for(
+                answer_method(text, reply_markup=reply_markup),
+                timeout=_SEND_MESSAGE_TIMEOUT_SEC,
+            )
             return True
+        except asyncio.TimeoutError:
+            LOGGER.warning(
+                "bot_send_timeout timeout_sec=%.1f attempt=%d/%d text=%s",
+                _SEND_MESSAGE_TIMEOUT_SEC,
+                attempt,
+                max_retries,
+                text[:120],
+                extra={"warning_category": "informational"},
+            )
+            continue
         except TelegramRetryAfter as error:
             retry_after: float = float(getattr(error, "retry_after", 5) or 5)
             LOGGER.warning(

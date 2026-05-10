@@ -344,21 +344,44 @@ class BatchRunner:
             elapsed_ms=shared_preparation_ms,
             scope="run",
         )
+        _t_emit_start: float = time.perf_counter()
+        self._logger.debug("prepare_ctx_pause_marker stage=before_emit_prepared")
         self._notifier.emit(
             f"✅ Подготовлено ссылок видео: {len(prepared_videos)}",
             to_telegram=not dry_run,
         )
+        self._logger.debug(
+            "prepare_ctx_pause_marker stage=after_emit_prepared elapsed_ms=%.1f",
+            (time.perf_counter() - _t_emit_start) * 1000.0,
+        )
 
+        _t_aggr_start: float = time.perf_counter()
         rows_skipped: int = max(0, len(sheet_state.rows) - len(prepared_videos))
         prepared_dates_count: int = len({item.date_key for item in prepared_videos})
         prepared_slots_count: int = len({f"{item.date_key}_{item.scheduled_at_kiev.strftime('%H%M')}" for item in prepared_videos})
+        self._logger.debug(
+            "prepare_ctx_pause_marker stage=after_aggregations elapsed_ms=%.1f",
+            (time.perf_counter() - _t_aggr_start) * 1000.0,
+        )
+
+        _t_record_start: float = time.perf_counter()
         record_planning_completed(planned_items=len(prepared_videos), rows_skipped=rows_skipped)
+        self._logger.debug(
+            "prepare_ctx_pause_marker stage=after_record_planning elapsed_ms=%.1f",
+            (time.perf_counter() - _t_record_start) * 1000.0,
+        )
+
+        _t_log_start: float = time.perf_counter()
         log_planning_completed(
             logger=self._logger,
             planned_items=len(prepared_videos),
             rows_skipped=rows_skipped,
             dates=prepared_dates_count,
             slots=prepared_slots_count,
+        )
+        self._logger.debug(
+            "prepare_ctx_pause_marker stage=after_log_planning elapsed_ms=%.1f",
+            (time.perf_counter() - _t_log_start) * 1000.0,
         )
         return PreparedRunContext(
             services=services,
