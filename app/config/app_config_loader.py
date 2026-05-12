@@ -282,9 +282,17 @@ def _build_ytdlp_config(app_settings: Dict[str, Any]) -> YtDlpConfig:
         ytdlp_payload = {}
     auto_update: bool = bool(ytdlp_payload.get("auto_update", True))
     interval_days: int = int(ytdlp_payload.get("update_check_interval_days", 7))
+    cookies_warn_age_days: int = int(ytdlp_payload.get("cookies_warn_age_days", 7))
+    deno_auto_update: bool = bool(ytdlp_payload.get("deno_auto_update", True))
+    deno_update_interval_days: int = int(
+        ytdlp_payload.get("deno_update_interval_days", 7)
+    )
     return YtDlpConfig(
         auto_update=auto_update,
         update_check_interval_days=interval_days,
+        cookies_warn_age_days=cookies_warn_age_days,
+        deno_auto_update=deno_auto_update,
+        deno_update_interval_days=deno_update_interval_days,
     )
 
 

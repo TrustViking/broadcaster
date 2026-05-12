@@ -2,7 +2,10 @@
 """
 PyInstaller spec для broadcaster bot (Telegram-бот, точка входа: bot_main.py).
 Режим: --onedir (папка с EXE и зависимостями).
-yt-dlp НЕ входит в сборку — лежит рядом как tools/yt-dlp.exe и обновляется самостоятельно.
+Внешние tools/*.exe НЕ входят в сборку — лежат рядом:
+- tools/yt-dlp.exe
+- tools/deno.exe
+и обновляются самостоятельно.
 """
 
 block_cipher = None
@@ -58,6 +61,9 @@ a = Analysis(
         'app.core.video_title_cleanup',
         # runtime
         'app.runtime.ytdlp_updater',
+        'app.runtime.deno_updater',
+        'app.runtime.cookies_updater',
+        'app.runtime.startup_banner',
         # ingest
         'app.ingest.youtube_metadata',
         # google
@@ -217,6 +223,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon='ico_tg.ico',
 )
 
 coll = COLLECT(

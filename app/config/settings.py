@@ -90,6 +90,9 @@ class CleanupConfig:
 class YtDlpConfig:
     auto_update: bool
     update_check_interval_days: int
+    cookies_warn_age_days: int = 7
+    deno_auto_update: bool = True
+    deno_update_interval_days: int = 7
 
 
 @dataclass(frozen=True)

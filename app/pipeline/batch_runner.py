@@ -46,6 +46,24 @@ from .operator_notifier import OperatorNotifier
 from .runtime_services import BatchServices, build_runtime_services
 
 
+_PREPARATION_PROGRESS_STEP: int = 5
+
+
+def _should_emit_preparation_progress(done: int, total: int) -> bool:
+    """Throttle predicate: emit every Nth step + always the final tick.
+
+    Single source of truth used both by the progress callbacks wired into
+    batch_runner._execute and by the unit tests.
+    """
+    if total <= 0:
+        return False
+    if done <= 0:
+        return False
+    if done > total:
+        return False
+    return done == total or (done % _PREPARATION_PROGRESS_STEP == 0)
+
+
 def _date_sort_key(date_key: str) -> tuple[int, str]:
     from datetime import datetime
     try:
@@ -307,6 +325,19 @@ class BatchRunner:
 
         self._log_section("Shared Preparation")
         shared_preparation_started_at: float = time.perf_counter()
+        self._notifier.emit(
+            "⏳ Подготовка видео: метаданные, превью, язык...",
+            to_telegram=False,
+        )
+
+        def _prepare_videos_progress(done: int, total: int) -> None:
+            if _should_emit_preparation_progress(done, total):
+                self._notifier.emit(
+                    f"⏳ Подготовка видео: подготовлено {done}/{total}",
+                    to_telegram=False,
+                )
+
+        _t_prepare: float = time.perf_counter()
         prepared_videos: List[PreparedVideo] = build_prepared_videos(
             logger=self._logger,
             config=self._config,
@@ -315,7 +346,29 @@ class BatchRunner:
             metadata_fetcher=self._metadata_fetcher,
             http_client=self._http_client,
             kiev_tz=self._kiev_tz,
+            progress_callback=_prepare_videos_progress,
         )
+        _prepare_ms: int = int(round((time.perf_counter() - _t_prepare) * 1000.0))
+        record_stage_duration(stage_name="shared_prep_prepare_videos", elapsed_ms=_prepare_ms)
+        log_stage_timing(
+            logger=self._logger,
+            stage_name="shared_prep_prepare_videos",
+            elapsed_ms=_prepare_ms,
+            scope="run",
+        )
+        self._notifier.emit(
+            "⏳ Подготовка видео: материализация превью...",
+            to_telegram=False,
+        )
+
+        def _preview_progress(done: int, total: int) -> None:
+            if _should_emit_preparation_progress(done, total):
+                self._notifier.emit(
+                    f"⏳ Подготовка видео: превью {done}/{total}",
+                    to_telegram=False,
+                )
+
+        _t_preview: float = time.perf_counter()
         prepared_videos = materialize_prepared_previews(
             logger=self._logger,
             config=self._config,
@@ -323,18 +376,53 @@ class BatchRunner:
             name_builder=self._name_builder,
             prepared_videos=prepared_videos,
             dry_run=dry_run,
+            progress_callback=_preview_progress,
         )
+        _preview_ms: int = int(round((time.perf_counter() - _t_preview) * 1000.0))
+        record_stage_duration(stage_name="shared_prep_preview_materialize", elapsed_ms=_preview_ms)
+        log_stage_timing(
+            logger=self._logger,
+            stage_name="shared_prep_preview_materialize",
+            elapsed_ms=_preview_ms,
+            scope="run",
+        )
+        self._notifier.emit(
+            "⏳ Запись превью в таблицу...",
+            to_telegram=False,
+        )
+        _t_preview_writeback: float = time.perf_counter()
         self._writeback_preview_urls(
             services=services,
             prepared_videos=prepared_videos,
             sheet_state=sheet_state,
             dry_run=dry_run,
         )
+        _preview_writeback_ms: int = int(round((time.perf_counter() - _t_preview_writeback) * 1000.0))
+        record_stage_duration(stage_name="shared_prep_preview_writeback", elapsed_ms=_preview_writeback_ms)
+        log_stage_timing(
+            logger=self._logger,
+            stage_name="shared_prep_preview_writeback",
+            elapsed_ms=_preview_writeback_ms,
+            scope="run",
+        )
+        self._notifier.emit(
+            "⏳ Запись языка в таблицу...",
+            to_telegram=False,
+        )
+        _t_language_writeback: float = time.perf_counter()
         self._writeback_detected_languages(
             services=services,
             prepared_videos=prepared_videos,
             sheet_state=sheet_state,
             dry_run=dry_run,
+        )
+        _language_writeback_ms: int = int(round((time.perf_counter() - _t_language_writeback) * 1000.0))
+        record_stage_duration(stage_name="shared_prep_language_writeback", elapsed_ms=_language_writeback_ms)
+        log_stage_timing(
+            logger=self._logger,
+            stage_name="shared_prep_language_writeback",
+            elapsed_ms=_language_writeback_ms,
+            scope="run",
         )
         shared_preparation_ms: int = int(round((time.perf_counter() - shared_preparation_started_at) * 1000.0))
         record_stage_duration(stage_name="shared_preparation", elapsed_ms=shared_preparation_ms)

@@ -48,8 +48,20 @@ class YtDlpYouTubeMetadataFetcher(YouTubeMetadataFetcher):
             "--no-warnings",
             "--skip-download",
             "--no-playlist",
-            video_url,
         ]
+
+        from app.paths.project_paths import get_project_paths
+        project_paths = get_project_paths()
+
+        cookies_path: Path = project_paths.cookies_file_path
+        if cookies_path.exists():
+            command += ["--cookies", str(cookies_path)]
+
+        deno_path: Path = project_paths.deno_exe_path
+        if deno_path.exists():
+            command += ["--js-runtimes", f"deno:{deno_path}"]
+
+        command.append(video_url)
         LOGGER.debug("yt-dlp metadata command: %s", " ".join(command))
 
         result = subprocess.run(

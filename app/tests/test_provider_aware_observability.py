@@ -152,6 +152,8 @@ class ProviderAwareSummaryTests(unittest.TestCase):
                 bundled_config_path=Path("app_config.yaml"),
                 bundled_templates_path=Path("templates.yaml"),
                 ytdlp_exe_path=Path("tools/yt-dlp.exe"),
+                cookies_file_path=Path("secrets/cookies.txt"),
+                deno_exe_path=Path("tools/deno.exe"),
                 state_dir=Path("state"),
             ),
         )
@@ -309,7 +311,13 @@ class EntrypointRegressionTests(unittest.TestCase):
         return SimpleNamespace(
             processing=SimpleNamespace(mode="audit"),
             cleanup=SimpleNamespace(max_age_days=7),
-            ytdlp=SimpleNamespace(auto_update=False, update_check_interval_days=7),
+            ytdlp=SimpleNamespace(
+                auto_update=False,
+                update_check_interval_days=7,
+                cookies_warn_age_days=15,
+                deno_auto_update=False,
+                deno_update_interval_days=15,
+            ),
             google=SimpleNamespace(
                 doc_share_mode="anyone_writer",
                 enabled=False,
@@ -355,6 +363,8 @@ class EntrypointRegressionTests(unittest.TestCase):
                         oauth_credentials_path=Path("secrets/credentials.json"),
                         oauth_token_path=Path("secrets/token.json"),
                         ytdlp_exe_path=Path("tools/yt-dlp.exe"),
+                        cookies_file_path=Path("secrets/cookies.txt"),
+                        deno_exe_path=Path("tools/deno.exe"),
                         state_dir=Path("state"),
                     ),
                 )

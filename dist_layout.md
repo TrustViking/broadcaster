@@ -8,9 +8,10 @@
 
 ```
 dist\broadcaster\                <- portable-корень
-  broadcaster.exe                <- точка запуска (Telegram-бот)
+  broadcaster.exe                <- точка запуска (Telegram-бот, иконка вшита)
   run_debug.bat                  <- вспомогательный debug-лончер
   .env.example                   <- пример переменных окружения
+  ico_tg.ico                     <- иконка для пользовательских ярлыков
   tools\
     yt-dlp.exe                   <- внешний бинарник, обновляется приложением автоматически
   secrets\

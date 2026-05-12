@@ -1,0 +1,60 @@
+# app config template
+# Copy to config/app_config.yaml (portable exe) or app/config/runtime/app_config.yaml (dev).
+# Secrets go in secrets/.env — see .env.example.
+# Env vars override YAML values where noted.
+app:
+  processing:
+    mode: audit
+
+  llm:
+    model: "gpt-5.2"              # env override: OPENAI_MODEL
+    timeout_sec: 120              # env override: STG_OPENAI_TIMEOUT_SEC
+    max_output_tokens: 2000       # env override: STG_OPENAI_MAX_OUTPUT_TOKENS
+    pre_delay_sec: 5.0            # env override: STG_OPENAI_PRE_DELAY_SEC
+
+  cleanup:
+    max_age_days: 3               # env override: STG_CLEANUP_MAX_AGE_DAYS
+
+  ytdlp:
+    auto_update: true              # тихое обновление yt-dlp.exe раз в N дней
+    update_check_interval_days: 7
+    cookies_warn_age_days: 15      # WARNING если файл cookies старше N дней
+    deno_auto_update: true         # автообновление deno.exe для JS-челленджей yt-dlp
+    deno_update_interval_days: 15
+
+  google:
+    enabled: true
+    auth_mode: "oauth"            # "oauth" or "service_account"; env override: GOOGLE_AUTH_MODE
+    drive_preview_path_template: "preview/{date}/{language}"
+    doc_share_mode: anyone_writer
+    sheets_range: "A:F"
+    form_url: "https://forms.gle/REPLACE_ME"
+    contacts: "@contact1 @contact2"
+
+  paths:
+    local_image_dir_template: "./image/{date}/{language}"
+    local_doc_dir_template: "./docs/{date}"
+
+  timezones:
+    kiev: "Europe/Kyiv"
+    cet: "Europe/Berlin"
+
+  telegram:
+    enabled: true
+    use_audit: false
+    symbol_separator: "🎬"
+    separator_repeat_count: 8
+    symbol_separator_start: "🔵"
+    separator_start_repeat_count: 12
+    symbol_broadcast: "❇️"
+    symbol_alert: "🚨"
+    symbol_form: "❇️"
+    symbol_description: "❇️"
+    symbol_pin: "📌"
+    symbol_done: "✅"
+    flag_repeat_count: 3
+    send_delay_seconds: 1.0
+    max_retries: 3
+
+  files:
+    preview_filename_max_stem: 120

@@ -15,6 +15,7 @@ from app.bootstrap.ensure_dirs import ensure_config_files, ensure_portable_dirs
 from app.bootstrap.cli import build_cli_parser
 from app.bootstrap.cleanup import run_daily_cleanup
 from app.bootstrap.logging_config import (
+    get_console_logger,
     get_current_log_file_paths,
     get_logger,
     resolve_logger_name_meta,
@@ -66,7 +67,10 @@ from app.paths.name_builder import NamePathBuilder
 from app.pipeline.batch_runner import BatchRunner
 from app.pipeline.operator_notifier import OperatorNotifier
 from app.resources import init_heading_resolver
+from app.runtime.cookies_updater import check_cookies
+from app.runtime.deno_updater import maybe_update_deno
 from app.runtime.ytdlp_updater import maybe_update_ytdlp, UpdateStatus
+from app.runtime.startup_banner import print_runtime_banner
 from app.telegram.bot_client import TelegramBotClient
 from app.telegram_bot.group_registry import handle_group_migration
 
@@ -212,6 +216,42 @@ class PipelineApplication:
                 "yt-dlp not found at %s - metadata fetching will fail",
                 project_paths.ytdlp_exe_path,
             )
+        # deno auto-update (опц., нужен yt-dlp для JS-челленджей)
+        _deno_update_status = maybe_update_deno(
+            deno_path=project_paths.deno_exe_path,
+            state_dir=project_paths.state_dir,
+            enabled=config.ytdlp.deno_auto_update,
+            interval_days=config.ytdlp.deno_update_interval_days,
+            logger=self._logger,
+        )
+        if _deno_update_status.current_version:
+            self._logger.info(
+                "deno version=%s update_attempted=%s update_succeeded=%s",
+                _deno_update_status.current_version,
+                _deno_update_status.attempted,
+                _deno_update_status.succeeded,
+            )
+
+        # cookies presence/age check (info-only при отсутствии файла, warn-only при устаревании)
+        _cookies_status = check_cookies(
+            cookies_file=project_paths.cookies_file_path,
+            warn_age_days=config.ytdlp.cookies_warn_age_days,
+            logger=self._logger,
+            ytdlp_path=project_paths.ytdlp_exe_path,
+        )
+        self._logger.info(
+            "cookies status=%s file_exists=%s age_days=%s account_detected=%s",
+            _cookies_status.message,
+            _cookies_status.file_exists,
+            _cookies_status.file_age_days,
+            _cookies_status.account_name is not None,
+        )
+        print_runtime_banner(
+            ytdlp_status=_ytdlp_update_status,
+            deno_status=_deno_update_status,
+            cookies_status=_cookies_status,
+            console_logger=get_console_logger(),
+        )
         run_daily_cleanup(
             logger=self._logger,
             project_root=project_paths.project_root,
@@ -591,3 +631,6 @@ class PipelineApplication:
             batch_runner.notifier.emit(text, to_telegram=False)
         except Exception:
             self._logger.debug("operator_final_summary_emit_failed", exc_info=True)
+
+
+Application = PipelineApplication

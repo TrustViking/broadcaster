@@ -23,6 +23,8 @@ class ProjectPaths:
     bundled_config_path: Path
     bundled_templates_path: Path
     ytdlp_exe_path: Path
+    cookies_file_path: Path
+    deno_exe_path: Path
     state_dir: Path
 
 
@@ -69,5 +71,7 @@ def get_project_paths() -> ProjectPaths:
         bundled_config_path=bundled_config_path,
         bundled_templates_path=bundled_templates_path,
         ytdlp_exe_path=project_root / "tools" / "yt-dlp.exe",
+        cookies_file_path=secrets_dir / "cookies.txt",
+        deno_exe_path=project_root / "tools" / "deno.exe",
         state_dir=project_root / "state",
     )
