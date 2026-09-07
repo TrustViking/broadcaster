@@ -132,7 +132,7 @@ def load_or_bootstrap_env(paths: ProjectPaths) -> tuple[list[CheckResult], dict[
     results: list[CheckResult] = []
     loaded_values: dict[str, str] = {}
     env_path: Path = paths.secrets_env_path
-    example_path: Path = paths.project_root / ".env.example"
+    example_path: Path = paths.project_root / "secrets" / ".env.example"
     dotenv_module_error: Exception | None = None
     dotenv_values_func: Any | None = None
     load_dotenv_func: Any | None = None

@@ -181,7 +181,11 @@ async def run_bot() -> None:
                 "startup_notify_failed chat_id=%s",
                 group.chat_id,
             )
+
     try:
         await dp.start_polling(bot)
     finally:
-        await bot.session.close()
+        try:
+            await bot.session.close()
+        except Exception:
+            pass

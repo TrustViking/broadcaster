@@ -18,7 +18,9 @@ a = Analysis(
         ('app/resources/text', 'app/resources/text'),
         ('app/config/runtime/app_config.yaml', 'app/config/runtime'),
         ('app/config/runtime/app_config.example.yaml', 'app/config/runtime'),
+        ('app/config/runtime/README.config.txt', 'app/config/runtime'),
         ('app/llm/prompts/templates.yaml', 'app/llm/prompts'),
+        ('secrets/README.txt', 'secrets'),
     ],
     hiddenimports=[
         # bootstrap
@@ -63,6 +65,7 @@ a = Analysis(
         'app.runtime.ytdlp_updater',
         'app.runtime.deno_updater',
         'app.runtime.cookies_updater',
+        'app.runtime.single_instance',
         'app.runtime.startup_banner',
         # ingest
         'app.ingest.youtube_metadata',
@@ -223,7 +226,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='ico_tg.ico',
+    icon='ico_code.ico',
 )
 
 coll = COLLECT(

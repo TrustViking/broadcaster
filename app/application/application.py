@@ -240,12 +240,48 @@ class PipelineApplication:
             ytdlp_path=project_paths.ytdlp_exe_path,
         )
         self._logger.info(
-            "cookies status=%s file_exists=%s age_days=%s account_detected=%s",
+            "cookies status=%s file_exists=%s format_valid=%s age_days=%s account_detected=%s",
             _cookies_status.message,
             _cookies_status.file_exists,
+            _cookies_status.format_valid,
             _cookies_status.file_age_days,
             _cookies_status.account_name is not None,
         )
+        if _cookies_status.file_exists and _cookies_status.format_valid is False:
+            fatal_lines: list[str] = [
+                "❌ FATAL: cookies.txt существует, но не в Netscape-формате.",
+                f"Путь: {_cookies_status.cookies_file}",
+                f"Причина: {_cookies_status.message}",
+                "",
+                "Первая строка должна быть: # Netscape HTTP Cookie File",
+                "Как получить правильный cookies.txt — см. secrets/README.txt.",
+            ]
+            # operator log (видно на экране у оператора)
+            get_console_logger().info("")
+            for line in fatal_lines:
+                if line:
+                    get_console_logger().info("   %s", line)
+                else:
+                    get_console_logger().info("")
+            get_console_logger().info("")
+            # detailed log (для последующего разбора)
+            self._logger.error(
+                "cookies format invalid on startup: path=%s reason=%s",
+                _cookies_status.cookies_file,
+                _cookies_status.message,
+            )
+            # Telegram-пользователь (если бот запустил пайплайн): чтобы он увидел причину,
+            # а не только "Код ошибки: 2"
+            if self._progress_callback is not None:
+                try:
+                    self._progress_callback("\n".join(fatal_lines))
+                except Exception:
+                    # не маскируем основную ошибку, если progress_callback упадёт
+                    self._logger.debug(
+                        "progress_callback failed during cookies FATAL",
+                        exc_info=True,
+                    )
+            return 2
         print_runtime_banner(
             ytdlp_status=_ytdlp_update_status,
             deno_status=_deno_update_status,

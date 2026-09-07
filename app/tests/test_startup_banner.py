@@ -55,6 +55,7 @@ class StartupBannerTests(unittest.TestCase):
             file_exists=True,
             file_age_days=0,
             message="актуальны",
+            format_valid=True,
             account_name=None,
         )
         defaults.update(overrides)

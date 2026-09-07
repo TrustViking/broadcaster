@@ -466,7 +466,12 @@ class RuntimeAnalyticsCollector:
         full_merge_artifacts: int = 0,
         run_summary_ms: int = 0,
     ) -> None:
-        status: str = _resolve_run_status(exit_code, self._state)
+        status: str = _resolve_run_status(
+            exit_code,
+            self._state,
+            fallback_merge_blocks=fallback_merge_blocks,
+            partial_merge_artifacts=partial_merge_artifacts,
+        )
         branch_summary: str = _format_branch_summary(
             audit_mode=audit_mode,
             state=self._state,

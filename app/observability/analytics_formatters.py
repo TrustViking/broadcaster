@@ -17,7 +17,13 @@ def _has_failed_branch(state: RuntimeAnalyticsState) -> bool:
     return any(branch_state.failed for branch_state in state.branch_results.values())
 
 
-def _resolve_run_status(exit_code: int, state: RuntimeAnalyticsState) -> str:
+def _resolve_run_status(
+    exit_code: int,
+    state: RuntimeAnalyticsState,
+    *,
+    fallback_merge_blocks: int = 0,
+    partial_merge_artifacts: int = 0,
+) -> str:
     if exit_code != 0:
         return "failed"
     if _has_failed_branch(state):
@@ -31,6 +37,8 @@ def _resolve_run_status(exit_code: int, state: RuntimeAnalyticsState) -> str:
         or state.merge_final_failure > 0
         or state.publish_gate_blocked_count > 0
         or state.telegram_skipped > 0
+        or fallback_merge_blocks > 0
+        or partial_merge_artifacts > 0
     ):
         return "partial"
     return "success"

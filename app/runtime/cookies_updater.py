@@ -16,7 +16,32 @@ class CookiesUpdateStatus:
     file_exists: bool
     file_age_days: Optional[int]   # возраст файла в днях по mtime
     message: str
+    format_valid: Optional[bool] = None   # None если файл отсутствует; True/False иначе
     account_name: Optional[str] = None   # имя YouTube-аккаунта, если удалось определить
+
+
+def validate_cookies_format(path: Path) -> tuple[bool, str]:
+    """Проверить, что cookies.txt начинается с Netscape-заголовка.
+
+    Returns:
+        (True, "ok") если формат валидный.
+        (False, <reason>) если файл пустой или формат неверный.
+    """
+    text: str = path.read_bytes().decode("utf-8-sig", errors="replace")
+    first_line: str | None = None
+    for line in text.splitlines():
+        stripped: str = line.strip()
+        if stripped:
+            first_line = stripped
+            break
+
+    if first_line is None:
+        return False, "пустой файл"
+
+    if first_line.startswith("# Netscape HTTP Cookie File"):
+        return True, "ok"
+
+    return False, f"первая строка не Netscape-заголовок: {first_line[:80]}"
 
 
 def check_cookies(
@@ -43,6 +68,7 @@ def check_cookies(
             file_exists=False,
             file_age_days=None,
             account_name=None,
+            format_valid=None,
             message="не настроены",
         )
 
@@ -58,7 +84,20 @@ def check_cookies(
             file_exists=False,
             file_age_days=None,
             account_name=None,
+            format_valid=None,
             message="файл не найден",
+        )
+
+    format_ok, format_reason = validate_cookies_format(cookies_file)
+    if not format_ok:
+        logger.error("cookies: невалидный формат файла %s: %s", cookies_file, format_reason)
+        return CookiesUpdateStatus(
+            cookies_file=cookies_file,
+            file_exists=True,
+            file_age_days=None,
+            account_name=None,
+            format_valid=False,
+            message=f"невалидный формат: {format_reason}",
         )
 
     age = _file_age_days(cookies_file)
@@ -91,6 +130,7 @@ def check_cookies(
         file_exists=True,
         file_age_days=age,
         account_name=account_name,
+        format_valid=True,
         message="актуальны" if age <= warn_age_days else f"устарели ({age} дн.)",
     )
 

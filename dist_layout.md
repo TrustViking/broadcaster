@@ -10,18 +10,22 @@
 dist\broadcaster\                <- portable-корень
   broadcaster.exe                <- точка запуска (Telegram-бот, иконка вшита)
   run_debug.bat                  <- вспомогательный debug-лончер
-  .env.example                   <- пример переменных окружения
-  ico_tg.ico                     <- иконка для пользовательских ярлыков
+  ico_code.ico                   <- иконка для пользовательских ярлыков
   tools\
     yt-dlp.exe                   <- внешний бинарник, обновляется приложением автоматически
   secrets\
+    README.txt                   <- инструкция: что должно лежать в этой папке
     .env                         <- токены Telegram, API-ключи, Google IDs
+    .env.example                 <- пример переменных окружения
     service_account.json         <- Google service account (auth_mode=service_account)
     credentials.json             <- OAuth2 Desktop client (auth_mode=oauth)
     token.json                   <- генерируется при первом OAuth-запуске
   config\
+    README.txt                   <- инструкция: что должно лежать в этой папке
     app_config.yaml              <- пользовательский конфиг; если отсутствует —
                                     создаётся автоматически из bundled при первом запуске
+    app_config.example.yaml      <- публичный пример пользовательского конфига
+    templates.yaml               <- шаблоны LLM и публикаций
   state\                         <- создаётся автоматически
     ytdlp_last_check.json
     bot_known_groups.json
@@ -49,3 +53,21 @@ build_broadcaster_exe.bat
   токен сохраняется, последующие запуски браузер не требуют.
 - `state\`, `logs\`, `config\`, `secrets\`, `image\`, `docs\` создаются приложением
   автоматически при первом запуске если отсутствуют.
+
+## Сборка инсталлятора
+
+Для одношаговой сборки полного `.exe`-инсталлятора через Inno Setup:
+
+- `build_release.bat` — публичная сборка, без реальных секретов; подходит для GitHub Release.
+- `build_local.bat` — личная сборка с реальными секретами; не публиковать.
+
+Оба батника:
+1. Вызывают `build_broadcaster_exe.bat` для PyInstaller-сборки.
+2. Запускают `ISCC.exe` против `installer.iss`.
+3. Кладут готовый installer в `dist\installer\`:
+   - `build_release.bat` → `broadcaster-setup-<version>.exe` (для GitHub Release)
+   - `build_local.bat`   → `broadcaster-setup-local-<version>.exe` (для личного использования)
+
+Установщик создаёт один ярлык на рабочем столе:
+- **Broadcaster** — запуск через `run_debug.bat`, который вызывает
+  `broadcaster.exe` и сохраняет окно консоли с кодом возврата после выхода.

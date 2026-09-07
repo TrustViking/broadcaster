@@ -3,17 +3,27 @@
 ########################################
 
 ########################################
-# Secrets / credentials (НЕ КОМИТИТЬ)
+# Environment files
 ########################################
-secrets/
-secrets/.env
+.env
+.env.*
+
+########################################
+# Secrets folder - track only the example and README
+########################################
+secrets/*
 !secrets/.env.example
+!secrets/README.txt
+# Explicit ignores below are redundant under secrets/* but kept as documentation of intent:
+secrets/.env
 secrets/token.json
 secrets/credentials.json
-*.env
-!.env.example
+secrets/service_account.json
+secrets/cookies.txt
 
+########################################
 # Google OAuth / API
+########################################
 credentials*.json
 credentials_bot.json
 .credentials_bot.json
@@ -22,7 +32,9 @@ client_secret*.json
 *service_account*.json
 *service-account*.json
 
+########################################
 # Keys / certs
+########################################
 *.pem
 *.key
 *.p12
@@ -50,6 +62,13 @@ pip-wheel-metadata/
 build/
 dist/
 
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+
 ########################################
 # Virtual environments
 ########################################
@@ -58,14 +77,12 @@ venv/
 ENV/
 .venv_*/
 .venv-*/
-.env*
 .poetry/
 
 ########################################
 # Logs / temp / outputs
 ########################################
 *.log
-*.ico
 logs/
 tmp/
 temp/
@@ -90,14 +107,20 @@ Desktop.ini
 .DS_Store
 
 ########################################
-# Optional: local launcher scripts with absolute paths
+# Optional local launcher scripts with absolute paths
 ########################################
-*.bat
-!*.example.bat
-########################################
-# Local app config (keep only example)
-########################################
-app/config/runtime/app_config.yaml
-app/config/runtime/app_config.*.yaml
-!app/config/runtime/app_config.example.yaml
+*.local.bat
+run_local*.bat
 
+########################################
+# Runtime config
+########################################
+# app_config.yaml is the operator's personal config (form URL, contacts) and
+# is NOT tracked. Only app_config.example.yaml is tracked as the public template.
+# Fresh clone: copy app_config.example.yaml -> app_config.yaml before building
+# (broadcaster.spec datas requires the file to exist).
+app/config/runtime/app_config.yaml
+app/config/runtime/app_config.local.yaml
+app/config/runtime/app_config.*.local.yaml
+# Hidden editor/temp duplicates (e.g. .app_config.example.yaml)
+app/config/runtime/.*.yaml
