@@ -173,6 +173,7 @@ def _translate_heading_via_llm(*, kind: str, language: str) -> Optional[str]:
             timeout_sec=min(15.0, float(config.llm.timeout_sec)),
             attempt_label="heading_translation",
             max_output_tokens=64,
+            reasoning_effort="low",  # 64-token budget: heavier reasoning would starve the answer
             structured_schema=None,
             temperature=0.0,
             trace_context=trace_context,

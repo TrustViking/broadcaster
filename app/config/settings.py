@@ -69,6 +69,9 @@ class GoogleConfig:
 class LlmConfig:
     provider: str
     model: str
+    fallback_model: str
+    reasoning_effort: str
+    service_tier: str
     timeout_sec: float
     max_output_tokens: int
     pre_delay_sec: float

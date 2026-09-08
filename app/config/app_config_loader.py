@@ -31,7 +31,13 @@ from app.config.validators import (
     setting_as_str,
     validate_app_settings,
 )
-from app.llm.models.model_identity import DEFAULT_OPENAI_MODEL
+from app.llm.models.model_identity import (
+    DEFAULT_OPENAI_MODEL,
+    DEFAULT_REASONING_EFFORT,
+    DEFAULT_SERVICE_TIER,
+    REASONING_EFFORT_VALUES,
+    SERVICE_TIER_VALUES,
+)
 from app.paths import get_project_paths
 
 
@@ -236,11 +242,40 @@ def _build_llm_config(app_settings: Dict[str, Any]) -> LlmConfig:
         llm_payload = {}
 
     yaml_model: str = str(llm_payload.get("model") or "").strip() or DEFAULT_OPENAI_MODEL
+    yaml_fallback_model: str = (
+        str(llm_payload.get("fallback_model") or "").strip() or DEFAULT_OPENAI_MODEL
+    )
+    yaml_reasoning_effort: str = (
+        str(llm_payload.get("reasoning_effort") or "").strip().lower()
+        or DEFAULT_REASONING_EFFORT
+    )
+    yaml_service_tier: str = (
+        str(llm_payload.get("service_tier") or "").strip().lower() or DEFAULT_SERVICE_TIER
+    )
     yaml_timeout: float = float(llm_payload.get("timeout_sec", 120.0) or 120.0)
     yaml_max_output: int = int(llm_payload.get("max_output_tokens", 2000) or 2000)
     yaml_pre_delay: float = float(llm_payload.get("pre_delay_sec", 5.0) or 5.0)
 
     openai_model: str = os.getenv("OPENAI_MODEL", "").strip() or yaml_model
+    openai_fallback_model: str = (
+        os.getenv("OPENAI_FALLBACK_MODEL", "").strip() or yaml_fallback_model
+    )
+    openai_reasoning_effort: str = (
+        os.getenv("OPENAI_REASONING_EFFORT", "").strip().lower() or yaml_reasoning_effort
+    )
+    if openai_reasoning_effort not in REASONING_EFFORT_VALUES:
+        raise RuntimeError(
+            "Config key llm.reasoning_effort must be one of "
+            f"{sorted(REASONING_EFFORT_VALUES)}: {openai_reasoning_effort!r}"
+        )
+    openai_service_tier: str = (
+        os.getenv("OPENAI_SERVICE_TIER", "").strip().lower() or yaml_service_tier
+    )
+    if openai_service_tier not in SERVICE_TIER_VALUES:
+        raise RuntimeError(
+            "Config key llm.service_tier must be one of "
+            f"{sorted(SERVICE_TIER_VALUES)}: {openai_service_tier!r}"
+        )
     openai_timeout_sec: float = EnvReader.float(
         "STG_OPENAI_TIMEOUT_SEC", yaml_timeout, min_value=1.0,
     )
@@ -254,6 +289,9 @@ def _build_llm_config(app_settings: Dict[str, Any]) -> LlmConfig:
     return LlmConfig(
         provider="openai",
         model=openai_model,
+        fallback_model=openai_fallback_model,
+        reasoning_effort=openai_reasoning_effort,
+        service_tier=openai_service_tier,
         timeout_sec=openai_timeout_sec,
         max_output_tokens=openai_max_output_tokens,
         pre_delay_sec=openai_pre_delay_sec,

@@ -30,7 +30,7 @@ pause & exit /b 1
 :iscc_found
 
 if not "%VERSION%"=="" set "MyAppVersion=%VERSION%"
-if "%MyAppVersion%"=="" set "MyAppVersion=0.2.0"
+if "%MyAppVersion%"=="" set "MyAppVersion=0.3.0"
 
 if not exist "%SCRIPT_DIR%dist\installer" mkdir "%SCRIPT_DIR%dist\installer" >nul 2>&1
 

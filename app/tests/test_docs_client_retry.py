@@ -179,6 +179,46 @@ class TestCreateDocumentRetry:
         assert exc_info.value.document_id == "<new_document>"
         mock_sleep.assert_not_called()
 
+    @patch("app.google.docs_client.time.sleep")
+    def test_connection_reset_is_retried_then_succeeds(self, mock_sleep: MagicMock) -> None:
+        mock_service = MagicMock()
+        mock_service.documents().create().execute.side_effect = [
+            ConnectionResetError(10054, "Remote host forcibly closed the connection"),
+            {"documentId": "doc-after-reset"},
+        ]
+        client = GoogleDocsClient(mock_service)
+
+        assert client.create_document("title") == "doc-after-reset"
+        assert mock_sleep.call_count == 1
+        assert mock_sleep.call_args[0][0] == _DOCS_WRITE_BASE_DELAY_SEC
+
+    @patch("app.google.docs_client.time.sleep")
+    def test_connection_error_raises_after_max_retries(self, mock_sleep: MagicMock) -> None:
+        mock_service = MagicMock()
+        mock_service.documents().create().execute.side_effect = ConnectionResetError(10054, "reset")
+        client = GoogleDocsClient(mock_service)
+
+        with pytest.raises(ConnectionResetError):
+            client.create_document("title")
+
+        assert mock_service.documents().create().execute.call_count == _DOCS_WRITE_MAX_RETRIES
+        assert mock_sleep.call_count == _DOCS_WRITE_MAX_RETRIES - 1
+
+    @patch("app.google.docs_client.time.sleep")
+    def test_remote_disconnected_on_batch_update_is_retried(self, mock_sleep: MagicMock) -> None:
+        import http.client
+
+        mock_service = MagicMock()
+        mock_service.documents().batchUpdate().execute.side_effect = [
+            http.client.RemoteDisconnected("Remote end closed connection without response"),
+            {"replies": []},
+        ]
+        client = GoogleDocsClient(mock_service)
+
+        client.batch_update("doc123", [{"insertText": {}}])
+
+        assert mock_sleep.call_count == 1
+
 
 class TestBatchUpdate5xxBehavior:
     @patch("app.google.docs_client.time.sleep")

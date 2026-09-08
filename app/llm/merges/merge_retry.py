@@ -423,9 +423,18 @@ def _merge_contract_block_with_retry(
         "llm_merge_structural_rules",
     )
     contract_block: str = contract_mode.contract_block.strip()
+    # Static structural rules go first so every request shares the same cacheable prefix;
+    # the mode-specific contract varies between compact/expanded and follows.
     if structural_rules_block:
-        contract_block = f"{contract_block}\n\n{structural_rules_block.strip()}".strip()
-    if expanded_retry_profile is not None and expanded_retry_profile.enabled:
-        reinforcement_block: str = "\n".join(expanded_retry_profile.reinforcement_lines)
-        return f"{contract_block}\n\nRETRY INSTRUCTION:\n{reinforcement_block}"
+        contract_block = f"{structural_rules_block.strip()}\n\n{contract_block}".strip()
+    retry_block: str = _retry_instruction_block(expanded_retry_profile)
+    if retry_block:
+        return f"{contract_block}\n\n{retry_block}"
     return contract_block
+
+
+def _retry_instruction_block(expanded_retry_profile: Optional[ExpandedRetryProfile]) -> str:
+    if expanded_retry_profile is None or not expanded_retry_profile.enabled:
+        return ""
+    reinforcement_block: str = "\n".join(expanded_retry_profile.reinforcement_lines)
+    return f"RETRY INSTRUCTION:\n{reinforcement_block}"

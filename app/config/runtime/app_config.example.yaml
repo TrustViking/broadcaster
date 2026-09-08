@@ -3,9 +3,12 @@ app:
     mode: audit                         # Технический режим пайплайна; сейчас поддерживается только audit. Ветку запуска выбирает --audit-mode: nomerge, merge или audit.
 
   llm:
-    model: "gpt-5.2"                    # Модель OpenAI для генерации и объединения текстов.
-    timeout_sec: 120                    # Таймаут одного LLM-запроса в секундах.
-    max_output_tokens: 2000             # Максимальный размер ответа LLM в токенах.
+    model: "gpt-5.2"                    # Основная модель OpenAI; на старте проверяется одним реальным запросом.
+    fallback_model: "gpt-5.2"           # Запасная модель: используется, если основная недоступна проекту (404/403).
+    reasoning_effort: "medium"          # Уровень reasoning для gpt-5.x: none, low, medium, high, xhigh, max.
+    service_tier: "default"             # Тариф OpenAI: default, flex (вдвое дешевле, медленнее, при отказе 429 — ожидание 20/40/80 с и переход на default), fast/priority (вдвое дороже, быстрее).
+    timeout_sec: 120                    # Таймаут одного LLM-запроса в секундах; для flex ставьте 600-900.
+    max_output_tokens: 6000             # Бюджет ответа LLM в токенах, ВКЛЮЧАЯ reasoning-токены; при medium ставьте 4000-6000.
     pre_delay_sec: 5.0                  # Пауза перед LLM-запросом, полезна для ограничения частоты запросов.
 
   cleanup:

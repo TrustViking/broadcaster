@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Tuple
 
 from app.config.settings import AppConfig
@@ -10,11 +11,9 @@ from app.core.env_flags import llm_allow_in_dry_run_from_env
 from app.core.error_summary import summarize_error
 from app.core.branching import audit_branch_labels
 from app.llm.models.model_compatibility import (
-    LlmModelConfigurationError,
     OpenAIRequestCompatibility,
     resolve_openai_request_compatibility,
 )
-from app.llm.llm_client import probe_openai_model_access
 from app.observability.runtime_analytics import (
     log_error_event,
     log_warning_informational,
@@ -26,6 +25,16 @@ from app.telegram.bot_client import TelegramBotClient
 
 
 LoggerNameMetaResolver = Callable[[], Tuple[str, str, bool]]
+
+
+@dataclass(frozen=True)
+class StartupHealthResult:
+    llm_merge_enabled: bool
+    failed_checks: Tuple[str, ...]
+
+    @property
+    def ok(self) -> bool:
+        return not self.failed_checks
 
 
 def log_section(*, logger: logging.Logger, title: str) -> None:
@@ -126,10 +135,9 @@ def _resolve_llm_merge_enabled(
     return llm_merge_enabled
 
 
-def _validate_openai_merge_model_or_raise(
+def _log_openai_merge_model_compatibility(
     *,
     logger: logging.Logger,
-    config: AppConfig,
     effective_model: str,
     configured_model: str,
     provider_model: str,
@@ -140,7 +148,7 @@ def _validate_openai_merge_model_or_raise(
         temperature_requested=True,
     )
     logger.info(
-        "OpenAI model compatibility effective_model=%s configured_model=%s provider_model=%s model_family=%s reasoning_effort=%s structured_output=%s temperature=%s capability_source=%s startup_probe=models.retrieve",
+        "OpenAI model compatibility effective_model=%s configured_model=%s provider_model=%s model_family=%s reasoning_effort=%s structured_output=%s temperature=%s capability_source=%s model_access=verified_at_startup_by_responses_probe",
         effective_model or "unknown",
         configured_model or "unknown",
         provider_model or "unknown",
@@ -153,17 +161,6 @@ def _validate_openai_merge_model_or_raise(
         ),
         "enabled" if compatibility.temperature_enabled else "disabled",
         compatibility.capability_source,
-    )
-    probe_openai_model_access(
-        provider_name="openai",
-        model_name=effective_model,
-        timeout_sec=float(config.llm.timeout_sec),
-    )
-    logger.info(
-        "OpenAI model probe passed effective_model=%s configured_model=%s provider_model=%s",
-        effective_model or "unknown",
-        configured_model or "unknown",
-        provider_model or "unknown",
     )
 
 
@@ -178,7 +175,7 @@ def run_startup_health_checks(
     dry_run: bool,
     resolved_audit_mode: str,
     run_id: str,
-) -> bool:
+) -> StartupHealthResult:
     startup_errors: List[str] = []
     logger.info("Startup identity check: begin.")
     logger.info("Logger name in use: %s", logger.name)
@@ -313,37 +310,12 @@ def run_startup_health_checks(
         getattr(llm_summary, "provider_model", effective_model) or ""
     ).strip()
     if llm_merge_enabled and str(llm_summary.provider or "").strip().lower() == "openai":
-        try:
-            _validate_openai_merge_model_or_raise(
-                logger=logger,
-                config=config,
-                effective_model=effective_model,
-                configured_model=configured_model,
-                provider_model=provider_model,
-            )
-        except LlmModelConfigurationError as error:
-            log_error_event(
-                logger,
-                "OpenAI model validation failed: provider=%s effective_model=%s configured_model=%s provider_model=%s reason_code=%s status_code=%s api_error_code=%s api_error_param=%s detail=%s",
-                llm_summary.provider,
-                effective_model or "unknown",
-                configured_model or "unknown",
-                provider_model or "unknown",
-                error.reason_code,
-                str(error.status_code if error.status_code is not None else "unknown"),
-                error.api_error_code or "none",
-                error.api_error_param or "none",
-                error.detail,
-                reason_code=error.reason_code,
-            )
-            raise
-        except Exception as error:
-            logger.warning(
-                "OpenAI model probe could not complete: provider=%s effective_model=%s decision=continue detail=%s",
-                llm_summary.provider,
-                effective_model or "unknown",
-                summarize_error(error),
-            )
+        _log_openai_merge_model_compatibility(
+            logger=logger,
+            effective_model=effective_model,
+            configured_model=configured_model,
+            provider_model=provider_model,
+        )
 
     log_section(logger=logger, title="Telegram API")
     try:
@@ -383,5 +355,8 @@ def run_startup_health_checks(
             )
     else:
         logger.info("Startup health-check decision: CONTINUE.")
-    return llm_merge_enabled
+    return StartupHealthResult(
+        llm_merge_enabled=llm_merge_enabled,
+        failed_checks=tuple(startup_errors),
+    )
 

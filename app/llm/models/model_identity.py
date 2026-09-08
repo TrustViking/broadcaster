@@ -4,7 +4,20 @@ from dataclasses import dataclass
 
 from app.config.settings import AppConfig
 
-DEFAULT_OPENAI_MODEL: str = "gpt-5.1"
+DEFAULT_OPENAI_MODEL: str = "gpt-5.2"
+DEFAULT_REASONING_EFFORT: str = "medium"
+REASONING_EFFORT_VALUES: frozenset[str] = frozenset(
+    {"none", "low", "medium", "high", "xhigh", "max"}
+)
+SERVICE_TIER_DEFAULT: str = "default"
+SERVICE_TIER_FLEX: str = "flex"
+DEFAULT_SERVICE_TIER: str = SERVICE_TIER_DEFAULT
+# OpenAI `service_tier`: flex = -50% price, slower, may answer 429 resource_unavailable;
+# priority/fast = faster, +100% price ("priority" was renamed "fast" in July 2026, both accepted).
+SERVICE_TIER_VALUES: frozenset[str] = frozenset({"auto", "default", "flex", "priority", "fast"})
+# Waits before each flex retry on 429 resource_unavailable; after the last one the
+# request is repeated on the default tier.
+FLEX_RETRY_DELAYS_SEC: tuple[float, ...] = (20.0, 40.0, 80.0)
 
 
 @dataclass(frozen=True)

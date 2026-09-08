@@ -43,6 +43,9 @@ from app.core.env_flags import (
 from app.core.error_summary import summarize_error
 from app.ingest.youtube_metadata import YtDlpYouTubeMetadataFetcher
 from app.llm.llm_client import get_run_local_openai_usage, reset_run_local_openai_usage
+from app.llm.llm_usage_tracker import RunLocalOpenAIUsageState
+from app.llm.model_selection import llm_merge_requested, select_llm_model
+from app.llm.models.model_compatibility import LlmModelConfigurationError
 from app.net.http_client import HttpClient
 from app.observability.final_summary import (
     FinalRunSummaryContext,
@@ -195,7 +198,6 @@ class PipelineApplication:
         self._configure_runtime(debug_enabled=debug_enabled)
 
         config: AppConfig = _load_config_from_env(logger=self._logger)
-        init_heading_resolver(config=config)
         # yt-dlp auto-update (тихое, не блокирует запуск при ошибке)
         _ytdlp_update_status: UpdateStatus = maybe_update_ytdlp(
             ytdlp_path=project_paths.ytdlp_exe_path,
@@ -295,6 +297,14 @@ class PipelineApplication:
             local_image_dir_template=config.paths.local_image_dir_template,
             local_doc_dir_template=config.paths.local_doc_dir_template,
         )
+        audit_mode: str = normalize_audit_mode(args.audit_mode, source="CLI audit mode")
+        if llm_merge_requested(audit_mode=audit_mode, dry_run=dry_run):
+            try:
+                config = select_llm_model(config=config, logger=self._logger)
+            except LlmModelConfigurationError as error:
+                self._report_llm_model_fatal(config=config, error=error)
+                return 1
+        init_heading_resolver(config=config)
         llm_summary: LlmSummarySnapshot = build_llm_summary_snapshot(config)
         sheets_link_writeback_enabled: bool = sheets_link_writeback_enabled_from_env()
         strip_chapter_timestamps_enabled: bool = (
@@ -307,7 +317,6 @@ class PipelineApplication:
             config_processing_mode_raw or "audit",
             source="runtime processing mode",
         )
-        audit_mode: str = normalize_audit_mode(args.audit_mode, source="CLI audit mode")
 
         startup_context: StartupContext = StartupContext(
             run_id=run_id,
@@ -373,6 +382,40 @@ class PipelineApplication:
             debug_enabled=debug_enabled,
             dry_run=dry_run,
         )
+
+    def _report_llm_model_fatal(
+        self,
+        *,
+        config: AppConfig,
+        error: LlmModelConfigurationError,
+    ) -> None:
+        fatal_lines: list[str] = [
+            "❌ FATAL: модель OpenAI недоступна для этого проекта.",
+            f"Модель: {config.llm.model} (fallback: {config.llm.fallback_model})",
+            f"Причина: {error.reason_code} status={error.status_code}",
+            f"Ответ API: {error.detail}",
+            "Проверьте llm.model / llm.fallback_model в app_config.yaml и список моделей проекта OpenAI.",
+        ]
+        get_console_logger().info("")
+        for line in fatal_lines:
+            get_console_logger().info("   %s", line)
+        get_console_logger().info("")
+        self._logger.error(
+            "FATAL: llm model unavailable model=%s fallback=%s reason_code=%s status_code=%s detail=%s",
+            config.llm.model,
+            config.llm.fallback_model,
+            error.reason_code,
+            error.status_code,
+            error.detail,
+        )
+        if self._progress_callback is not None:
+            try:
+                self._progress_callback("\n".join(fatal_lines))
+            except Exception:
+                self._logger.debug(
+                    "progress_callback failed during llm model FATAL",
+                    exc_info=True,
+                )
 
     def _build_run_id(self) -> str:
         return datetime.now().strftime("%Y%m%d_%H%M%S") + "_" + secrets.token_hex(3)
@@ -633,7 +676,18 @@ class PipelineApplication:
             )
             or ""
         ).strip() or "unknown"
-        llm_requests: int = int(get_run_local_openai_usage().requests_sent or 0)
+        usage_state: RunLocalOpenAIUsageState = get_run_local_openai_usage()
+        llm_requests: int = int(usage_state.requests_sent or 0)
+        tokens_part: str = ""
+        if usage_state.usage_reports > 0:
+            cost_text: str = (
+                f" ≈ ${usage_state.estimated_cost_usd:.3f}" if usage_state.cost_known else ""
+            )
+            tokens_part = (
+                f"\n🧮 Токены: in {usage_state.input_tokens} (cached {usage_state.cached_input_tokens}) / "
+                f"out {usage_state.output_tokens} (reasoning {usage_state.reasoning_tokens}) / "
+                f"total {usage_state.total_tokens}{cost_text}"
+            )
 
         merge_success_count: int = (
             int(getattr(merge_summary, "merge_success", 0)) if merge_summary is not None else 0
@@ -659,6 +713,7 @@ class PipelineApplication:
             f"{state_snapshot.telegram_failed} ошибок, {state_snapshot.telegram_skipped} пропущено\n"
             f"🤖 LLM: {llm_model}, запросов {llm_requests}, "
             f"merge успешных {merge_success_count}, retry {retry_used_count}"
+            f"{tokens_part}"
             f"{publish_gate_part}\n"
             f"⏱ Время: {minutes} мин {seconds} сек"
         )

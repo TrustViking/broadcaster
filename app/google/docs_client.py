@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import http.client
+# Kept imported here on purpose: tests patch "app.google.docs_client.time.sleep",
+# which resolves through this name into the shared retry engine.
 import time
 from typing import Any, Callable, Dict, List, Optional, cast
 
 from app.bootstrap.logging_config import get_logger as _get_logger_impl
+from app.google.api_retry import GoogleApiRetryPolicy, execute_with_retry
 
 try:
     from googleapiclient.errors import HttpError
@@ -16,12 +20,14 @@ _DOCS_WRITE_MAX_RETRIES: int = 4
 _DOCS_WRITE_BASE_DELAY_SEC: float = 15.0
 _DOCS_WRITE_MAX_DELAY_SEC: float = 90.0
 _DOCS_TRANSIENT_STATUS_CODES: frozenset[int] = frozenset({500, 502, 503, 504})
+# Transport-level failures below the HTTP layer: connection reset (WinError 10054),
+# timeouts, SSL errors, remote disconnect. Retried in place with the same backoff as 429.
+_DOCS_CONNECTION_ERRORS: tuple[type[BaseException], ...] = (OSError, http.client.HTTPException)
 
 
 def _compute_retry_delay(attempt: int) -> float:
     """Exponential backoff: base * 2^(attempt-1), capped at max."""
-    delay: float = _DOCS_WRITE_BASE_DELAY_SEC * (2 ** (attempt - 1))
-    return min(delay, _DOCS_WRITE_MAX_DELAY_SEC)
+    return _DOCS_RETRY_POLICY.compute_delay(attempt)
 
 
 class GoogleDocsTransientError(RuntimeError):
@@ -36,48 +42,38 @@ class GoogleDocsTransientError(RuntimeError):
         self.original = original
 
 
+_DOCS_RETRY_POLICY: GoogleApiRetryPolicy = GoogleApiRetryPolicy(
+    max_retries=_DOCS_WRITE_MAX_RETRIES,
+    base_delay_sec=_DOCS_WRITE_BASE_DELAY_SEC,
+    max_delay_sec=_DOCS_WRITE_MAX_DELAY_SEC,
+    transient_status_codes=_DOCS_TRANSIENT_STATUS_CODES,
+    connection_errors=_DOCS_CONNECTION_ERRORS,
+    log_prefix="docs",
+    resource_label="document_id",
+    transient_error_factory=lambda status_code, document_id, original: (
+        GoogleDocsTransientError(
+            status_code=status_code,
+            document_id=document_id,
+            original=original,
+        )
+    ),
+)
+
+
 def _execute_with_retry(
     operation_name: str,
     document_id: str,
     request_callable: Callable[[], Any],
     request_count: Optional[int] = None,
 ) -> Any:
-    for attempt in range(1, _DOCS_WRITE_MAX_RETRIES + 1):
-        try:
-            return request_callable()
-        except HttpError as error:
-            status_code: Optional[int] = getattr(getattr(error, "resp", None), "status", None)
-            if status_code == 429 and attempt < _DOCS_WRITE_MAX_RETRIES:
-                delay_sec: float = _compute_retry_delay(attempt)
-                if request_count is not None:
-                    LOGGER.warning(
-                        "docs_batch_update_429 attempt=%d/%d delay_sec=%.1f document_id=%s requests_count=%d",
-                        attempt,
-                        _DOCS_WRITE_MAX_RETRIES,
-                        delay_sec,
-                        document_id,
-                        request_count,
-                        extra={"warning_category": "informational"},
-                    )
-                else:
-                    LOGGER.warning(
-                        "docs_request_429 operation=%s attempt=%d/%d delay_sec=%.1f document_id=%s",
-                        operation_name,
-                        attempt,
-                        _DOCS_WRITE_MAX_RETRIES,
-                        delay_sec,
-                        document_id,
-                        extra={"warning_category": "informational"},
-                    )
-                time.sleep(delay_sec)
-                continue
-            if status_code in _DOCS_TRANSIENT_STATUS_CODES:
-                raise GoogleDocsTransientError(
-                    status_code=int(status_code),
-                    document_id=document_id,
-                    original=error,
-                ) from error
-            raise
+    return execute_with_retry(
+        policy=_DOCS_RETRY_POLICY,
+        logger=LOGGER,
+        operation_name=operation_name,
+        resource_id=document_id,
+        request_callable=request_callable,
+        request_count=request_count,
+    )
 
 
 class GoogleDocsClient:

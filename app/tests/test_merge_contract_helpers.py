@@ -13,6 +13,8 @@ class MergeContractServiceBase(unittest.TestCase):
             llm=SimpleNamespace(
                 provider="openai",
                 model="gpt-5.1",
+                reasoning_effort="medium",
+                service_tier="default",
                 timeout_sec=30.0,
                 max_output_tokens=1000,
                 pre_delay_sec=0.0,
@@ -34,7 +36,7 @@ Do not use emoji in the title.
 {merge_contract_block}
 Avoid asserting strong person titles or role labels unless they are clearly necessary and well-supported by the sources.
 Optional official links block is allowed before the hashtags line with 1 to 3 non-YouTube links from sources.
-An optional final hashtags line is allowed.
+Always end the description with a final hashtags line.
 Return strict JSON with title and description only.
 
 {youtube_candidates_block}
