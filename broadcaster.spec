@@ -74,8 +74,11 @@ a = Analysis(
         'app.google.sheets_client',
         'app.google.docs_client',
         'app.google.drive_client',
+        'app.google.api_retry',
         # llm
         'app.llm.llm_client',
+        'app.llm.model_pricing',
+        'app.llm.model_selection',
         'app.llm.llm_factory',
         'app.llm.llm_rate_limits',
         'app.llm.llm_usage_tracker',
